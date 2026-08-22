@@ -13,7 +13,8 @@
   --rule:#2C3238; --rule-strong:#3E464F;
   --accent:#E0797E; --accent-ink:#E0797E; --accent-bg:#332123;
   --steel:#8DBBD2; --steel-bg:#1C2A33;
-  --tg:#8DBBD2; --yt:#E0797E; --gd:#87C298; --web:#C4B08C; --arch:#848D98;
+  --tg:#8DBBD2; --yt:#E0797E; --gd:#87C298; --web:#AEA898; --nh:#E0A34E;
+  --arch:#A79AD1; --int:#8A93A0; --oth:#6FB3A8;
   --ok:#87C298; --warn:#D3A055;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
 }
@@ -23,7 +24,8 @@
   --rule:#DFDBD3; --rule-strong:#C6C0B5;
   --accent:#8C1D24; --accent-ink:#8C1D24; --accent-bg:#F6E8E7;
   --steel:#2C6079; --steel-bg:#E4EEF3;
-  --tg:#2C6079; --yt:#8C1D24; --gd:#3D6F4C; --web:#6B5B45; --arch:#7A828E;
+  --tg:#2C6079; --yt:#8C1D24; --gd:#3D6F4C; --web:#6A6558; --nh:#A9690A;
+  --arch:#574A8C; --int:#6E7681; --oth:#2F6E64;
   --ok:#3D6F4C; --warn:#9A6510;
   --shadow:0 1px 2px rgba(20,22,26,.05),0 6px 20px rgba(20,22,26,.05);
 }
@@ -62,9 +64,21 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .lg{display:inline-flex;align-items:center;gap:6px}
 .lgt{color:var(--ink-2)}
 .lgn{color:var(--ink-3);font-size:11px}
-.sw{width:9px;height:9px;border-radius:50%;background:var(--web);flex:none}
-.sw.telegram{background:var(--tg)} .sw.youtube{background:var(--yt)}
-.sw.google-doc{background:var(--gd)} .sw.archive,.sw.internal-anchor{background:var(--arch)}
+/* one hue per source kind, shared by chips, underlines, footnotes and the legend */
+.src.telegram,.inl.telegram,.mk.telegram,.sw.telegram{--k:var(--tg)}
+.src.youtube,.inl.youtube,.mk.youtube,.sw.youtube{--k:var(--yt)}
+.src.google-doc,.inl.google-doc,.mk.google-doc,.sw.google-doc{--k:var(--gd)}
+.src.web,.inl.web,.mk.web,.sw.web{--k:var(--web)}
+.src.nhtsa,.inl.nhtsa,.mk.nhtsa,.sw.nhtsa{--k:var(--nh)}
+.src.archive,.inl.archive,.mk.archive,.sw.archive{--k:var(--arch)}
+.src.internal-anchor,.inl.internal-anchor,.mk.internal-anchor,.sw.internal-anchor{--k:var(--int)}
+.src.image,.inl.image,.mk.image,.sw.image{--k:var(--oth)}
+.src.maps,.inl.maps,.mk.maps,.sw.maps{--k:var(--oth)}
+.src.instagram,.inl.instagram,.mk.instagram,.sw.instagram{--k:var(--oth)}
+.src.twitter,.inl.twitter,.mk.twitter,.sw.twitter{--k:var(--oth)}
+.src.shortlink,.inl.shortlink,.mk.shortlink,.sw.shortlink{--k:var(--oth)}
+.src.gdrive,.inl.gdrive,.mk.gdrive,.sw.gdrive{--k:var(--oth)}
+.sw{width:9px;height:9px;border-radius:50%;background:var(--k, var(--web));flex:none}
 .lgrule{width:1px;align-self:stretch;background:var(--rule-strong);margin:0 2px}
 .tabs{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:2px;
   overflow-x:auto;max-width:100%}
@@ -75,23 +89,18 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .jump{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:12px}
 /* a linked phrase stays ink-coloured; only its underline carries the source colour,
    so a paragraph of links no longer reads as a wall of decoration */
-.inl{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule-strong);
-  padding-bottom:1px}
+.inl{color:var(--ink);text-decoration:none;padding-bottom:1px;
+  border-bottom:1px solid color-mix(in srgb, var(--k, var(--rule-strong)) 55%, transparent)}
 .inl:hover{color:var(--accent);border-bottom-color:var(--accent)}
-.inl.telegram{border-bottom-color:color-mix(in srgb, var(--tg) 55%, transparent)}
-.inl.youtube{border-bottom-color:color-mix(in srgb, var(--yt) 55%, transparent)}
-.inl.google-doc{border-bottom-color:color-mix(in srgb, var(--gd) 55%, transparent)}
 .inl.nav{border-bottom-style:dashed}
 .inl.dead{color:var(--ink-3);text-decoration:line-through;border-bottom:0}
 
 /* source references: numbered, quiet, colour-coded by kind */
 .mk{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:18px;
   padding:0 5px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1;
-  border:1px solid var(--rule);border-radius:3px;color:var(--ink-3);background:var(--surface-2)}
-.mk{margin:0 1px}
+  border:1px solid var(--rule);border-radius:3px;background:var(--surface-2);margin:0 1px;
+  color:var(--k, var(--ink-3))}
 .mk:hover{border-color:currentColor;text-decoration:none}
-.mk.telegram{color:var(--tg)} .mk.youtube{color:var(--yt)} .mk.google-doc{color:var(--gd)}
-.mk.web,.mk.nhtsa,.mk.image,.mk.maps,.mk.instagram,.mk.twitter{color:var(--web)}
 .mk.dead{color:var(--ink-3);text-decoration:line-through;opacity:.6}
 .mk.hidden{display:none}
 
@@ -169,13 +178,11 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .tag.doc:hover{border-color:var(--accent);color:var(--accent)}
 .srcs{display:flex;flex-wrap:wrap;gap:5px}
 .src{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:3px 9px;border-radius:3px;
-  border:1px solid var(--rule);background:var(--surface-2);max-width:100%}
+  border:1px solid var(--rule);background:var(--surface-2);max-width:100%;
+  color:var(--k, var(--web))}
 .src:hover{border-color:currentColor;text-decoration:none}
 .src .dot{width:6px;height:6px;border-radius:50%;flex:none;background:currentColor}
 .src .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:20ch}
-.src.telegram{color:var(--tg)} .src.youtube{color:var(--yt)} .src.google-doc{color:var(--gd)}
-.src.web,.src.nhtsa,.src.image,.src.maps,.src.instagram,.src.twitter{color:var(--web)}
-.src.archive,.src.shortlink,.src.internal-anchor,.src.gdrive{color:var(--arch)}
 .src.more{color:var(--ink-3);cursor:pointer}
 .src.more:hover{color:var(--accent)}
 .src.nav{border-style:dashed}
@@ -687,6 +694,7 @@ function docsFiltered(){
 const LEGEND_KINDS = [["telegram","تيليقرام — رسالة في قروب"], ["youtube","يوتيوب — مقطع"],
   ["google-doc","مستند مرتبط"], ["web","موقع أو منتدى"], ["nhtsa","استدعاءات ونشرات"],
   ["archive","نسخة من الأرشيف"], ["internal-anchor","داخل هذا الدليل"]];
+const LEGEND_OTHER = ["image","maps","instagram","twitter","shortlink","gdrive"];
 function buildLegend(){
   const box = $("#legend");
   box.textContent = "";
@@ -702,8 +710,14 @@ function buildLegend(){
     if(counts[kind]) item.append(el("span","lgn mono", counts[kind].toLocaleString("en-US")));
     box.append(item);
   });
-  const rule = el("span","lgrule");
-  box.append(rule);
+  const otherTotal = LEGEND_OTHER.reduce((n, k) => n + (counts[k] || 0), 0);
+  if(otherTotal){
+    const item = el("span","lg");
+    item.append(el("span","sw image"), el("span","lgt","صور وخرائط وحسابات وروابط مختصرة"),
+                el("span","lgn mono", otherTotal.toLocaleString("en-US")));
+    box.append(item);
+  }
+  box.append(el("span","lgrule"));
   const forms = [
     [el("span","inl telegram","نص تحته خط"), "عبارة قابلة للنقر تفتح مصدرها"],
     [el("span","mk","2"), "أرقام = مصادر إضافية لنفس البند"],
