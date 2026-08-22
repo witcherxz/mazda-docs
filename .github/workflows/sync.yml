@@ -37,6 +37,8 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Restore the database and satellite cache
         uses: actions/cache@v4
@@ -97,7 +99,8 @@ jobs:
           else
             n=$(python3 -c "import json;print(len(json.load(open('build/run.json'))['changes']))")
             git commit -m "sync: $(date -u +%Y-%m-%d) — $n changes"
-            git push
+            git push || echo "::warning::could not push the change history — set Settings → \
+              Actions → General → Workflow permissions to 'Read and write'. The site still deployed."
           fi
 
       - uses: actions/upload-pages-artifact@v3
