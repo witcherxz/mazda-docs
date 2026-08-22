@@ -146,9 +146,9 @@ main{max-width:1180px;margin:0 auto;padding:20px 20px 80px}
 .letters button{min-width:29px;height:29px;border:1px solid var(--rule);border-radius:3px;font-size:13.5px;
   color:var(--ink-2);background:var(--surface)}
 .letters button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-.topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:10px}
 .topic{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;
-  display:flex;flex-direction:column;gap:9px}
+  display:flex;flex-direction:column;gap:9px;min-width:0}
 .topic:hover{border-color:var(--rule-strong)}
 .topic.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .topic .head{display:flex;align-items:flex-start;gap:9px}
@@ -225,13 +225,13 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .blk.flash{background:var(--accent-bg);border-radius:3px}
 
 /* ---------- documents ---------- */
-.docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px}
 .doc{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:14px 15px;
-  display:flex;flex-direction:column;gap:9px}
-.doc h3{font-size:16.5px}
+  display:flex;flex-direction:column;gap:9px;min-width:0}
+.doc h3{font-size:16.5px;overflow-wrap:anywhere}
 .doc .meta{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
 .doc .secs{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--ink-2);
-  max-height:112px;overflow:hidden;position:relative}
+  max-height:112px;overflow:hidden;position:relative;min-width:0}
 .doc .secs span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .doc .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
 .doc .acts a,.doc .acts button{font-size:12.5px;border:1px solid var(--rule);border-radius:3px;padding:4px 10px;color:var(--ink-2)}
@@ -248,6 +248,7 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .chg:last-child{border-bottom:0}
 .chg .what{font-size:11.5px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
 .chg .delta{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-3);white-space:nowrap}
+.chg a,.chg span{overflow-wrap:anywhere;min-width:0}
 .chg.added .what{color:var(--ok)} .chg.removed .what{color:var(--accent)}
 
 .empty{color:var(--ink-3);text-align:center;padding:60px 0;font-size:15px}
@@ -256,12 +257,16 @@ footer{border-top:1px solid var(--rule);margin-top:32px;padding:18px 0;color:var
   display:flex;gap:16px;flex-wrap:wrap;align-items:center}
 footer .credit{flex-basis:100%;padding-top:6px;border-top:1px solid var(--rule);color:var(--ink-2)}
 footer .credit a{font-weight:600}
-@media(max-width:860px){.arts{grid-template-columns:1fr}.artlist{max-height:32vh}}
+@media(max-width:860px){
+  .arts{grid-template-columns:1fr}
+  .artlist{max-height:40vh}
+  .reader{max-height:none;overflow:visible}   /* one scrollbar per page, not three */
+}
 @media(max-width:700px){
   .only-mobile{display:inline-block}
   .cols{grid-template-columns:1fr}
   .bar-in{padding:10px 14px;gap:9px}
-  main{padding:16px 14px 70px}
+  main{padding:16px 14px 28px}
   .brand h1{font-size:17px} .brand .sub{display:none}
   .topics,.docs{grid-template-columns:1fr}
   .chg{grid-template-columns:1fr;gap:3px}
