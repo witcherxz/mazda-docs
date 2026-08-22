@@ -18,7 +18,7 @@ BUILD = os.path.join(ROOT, "build")
 HISTORY = os.path.join(ROOT, "data", "history.jsonl")
 
 
-def append_history(entry, path=HISTORY, keep_changes=200):
+def append_history(entry, path=HISTORY, keep_changes=200):  # noqa: D401
     """Durable, diff-friendly record of every sync.
 
     The SQLite mirror is disposable (CI restores it from cache and it would bloat
@@ -26,9 +26,15 @@ def append_history(entry, path=HISTORY, keep_changes=200):
     it is what the site's التحديثات view reads.
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    if not entry["changes"]:
+        # a rebuild of an unchanged document is not history; only the first one is
+        previous, _ = read_history(path, runs=1)
+        if previous and previous[-1]["sha"] == entry["sha"]:
+            return False
     entry = dict(entry, changes=entry["changes"][:keep_changes])
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return True
 
 
 def read_history(path=HISTORY, runs=40):
