@@ -62,6 +62,15 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .tabs .badge{font-size:11px;color:var(--ink-3);margin-inline-start:5px}
 .tabs button.nohits{opacity:.45}
 .jump{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:12px}
+.inl{color:var(--web);border-bottom:1px dotted currentColor;text-decoration:none}
+.inl:hover{text-decoration:none;border-bottom-style:solid}
+.inl.telegram{color:var(--tg)} .inl.youtube{color:var(--yt)} .inl.google-doc{color:var(--gd)}
+.inl.archive,.inl.shortlink,.inl.internal-anchor,.inl.gdrive{color:var(--arch)}
+.inl.nav{border-bottom-style:dashed}
+.inl.dead{color:var(--ink-3);text-decoration:line-through;border-bottom:0}
+.inl.mk{border-bottom:0;font-family:"IBM Plex Mono",monospace;font-size:.72em;
+  vertical-align:super;line-height:0;padding:0 2px;opacity:.85}
+.inl.mk:hover{opacity:1;text-decoration:underline}
 .col li.hit{color:var(--ink);font-weight:500}
 .col li.hit::marker{color:var(--accent)}
 .search{display:flex;align-items:center;gap:9px;border:1px solid var(--rule-strong);border-radius:4px;
@@ -377,6 +386,59 @@ function highlightWords(text, ts, tag){
   return node;
 }
 
+/* Prose whose key phrases are themselves links: render them where they sit in the
+   sentence instead of repeating them as a chip row underneath. */
+function runsText(o){
+  if(o._t == null) o._t = (o.runs || []).map(r => r.t).join(" ").replace(/\s+/g," ").trim();
+  return o._t;
+}
+const MARKER = /^[\s>*«»·،,.\-–—()\d]+$/;
+const SEPARATOR = /^[\s>‹›«»<]+$/;      /* the arrows that sat between the old markers */
+function renderRuns(o, ts, tag){
+  const node = el(tag || "span");
+  let mark = 0, lastMarker = false;
+  const runs = o.runs || [];
+  runs.forEach((r, i) => {
+    const nextIsMarker = () => {
+      const n = runs[i + 1];
+      return !!(n && n.u && MARKER.test(n.t));
+    };
+    if(!r.u){
+      /* "phrase > ¹ > ² > ³" reads as "phrase ¹ ² ³" */
+      if(SEPARATOR.test(r.t) && (lastMarker || nextIsMarker())) return;
+      lastMarker = false;
+      node.append(highlightWords(r.t, ts));
+      return;
+    }
+    const kind = r.k || kindOf(r.u);
+    const bad = (DATA.health || {})[r.u];
+    const dead = bad && bad[0] === "dead";
+    const archive = dead ? bad[1] : null;
+    const a = el("a", "inl " + kind + (dead ? " dead" : "") + (r.nav ? " nav" : ""));
+    a.href = archive || r.u; a.target = "_blank"; a.rel = "noopener";
+    a.title = dead ? (archive ? "الرابط الأصلي معطّل — يفتح نسخة من الأرشيف" : "الرابط معطّل")
+                   : `${KIND_AR[kind]||kind} — ${r.u}`;
+    if(r.nav){
+      a.href = "#art=" + r.nav.a; a.target = "_self";
+      a.onclick = ev => { ev.preventDefault(); state.tab = "arts"; state.artId = r.nav.a;
+        state.artBlock = r.nav.b; state.q = ""; $("#q").value = ""; render(); };
+    }
+    /* "*", ">2", ">3" are extra sources for the phrase before them — number them like
+       footnotes instead of printing a chain of symbols */
+    if(MARKER.test(r.t)){
+      a.classList.add("mk");
+      a.textContent = String(++mark);
+      a.title = `مصدر إضافي ${mark} — ${r.u}`;
+      lastMarker = true;
+    } else {
+      mark = 0; lastMarker = false;
+      a.append(highlightWords(r.t, ts));
+    }
+    node.append(a);
+  });
+  return node;
+}
+
 /* ---------- state ---------- */
 const state = {tab:"topics", q:"", models:new Set(), engines:new Set(), kinds:new Set(),
   docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null,
@@ -452,8 +514,7 @@ function schedFiltered(){
     if(!ts.length) return true;
     if(!iv._hay){
       iv._hay = {text: norm([iv.interval,
-        ...iv.replace.map(i => i.t + " " + i.links.map(l => l.label).join(" ")),
-        ...iv.inspect.map(i => i.t + " " + i.links.map(l => l.label).join(" "))].join(" "))};
+        ...iv.replace.map(runsText), ...iv.inspect.map(runsText)].join(" "))};
     }
     return longMatch(iv._hay, ts);
   });
@@ -708,13 +769,8 @@ function viewSched(counts){
       col.append(el("h3",null,`${title} · ${items.length}`));
       const ul = el("ul");
       items.forEach(it => {
-        const li = el("li" , itemMatches(it.t) ? "hit" : null);
-        if(it.t) li.append(highlightWords(it.t, terms()));
-        if(it.links.length){
-          const srcs = el("div","srcs");
-          it.links.forEach((s,i) => srcs.append(srcLink(s, i, it.t)));
-          li.append(srcs);
-        }
+        const li = el("li", itemMatches(runsText(it)) ? "hit" : null);
+        li.append(renderRuns(it, terms()));
         ul.append(li);
       });
       col.append(ul);
@@ -750,12 +806,7 @@ function viewArts(counts){
     }
     active.blocks.forEach((b, bi) => {
       const d = el("div","blk" + (b.row ? " row" : "") + (b.h ? " h" : ""));
-      if(b.t) d.append(highlightWords(b.t, terms(), b.h ? "h3" : "p"));
-      if(b.links.length){
-        const srcs = el("div","srcs");
-        b.links.forEach((s,i) => srcs.append(srcLink(s, i, b.t)));
-        d.append(srcs);
-      }
+      d.append(renderRuns(b, terms(), b.h ? "h3" : "p"));
       d.dataset.b = bi;
       rd.append(d);
     });

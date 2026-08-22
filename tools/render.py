@@ -58,12 +58,14 @@ def compact(data):
     for a in d["articles"]:
         a["norm"] = a.get("norm", "")[:3000]
         for b in a["blocks"]:
-            for l in b["links"]:
-                l.pop("kind", None)
+            b.pop("t", None)                   # recomputed from the runs in the browser
+            for r in b["runs"]:
+                r.pop("k", None)               # derived from the URL
     for iv in d["schedule"]:
         for it in iv["replace"] + iv["inspect"]:
-            for l in it["links"]:
-                l.pop("kind", None)
+            it.pop("t", None)
+            for r in it["runs"]:
+                r.pop("k", None)
     for doc in d.get("docs", []):
         doc["sections"] = doc["sections"][:25]
         doc["f"] = {k: v for k, v in (doc.get("f") or {}).items() if v}

@@ -181,8 +181,11 @@ class Render(unittest.TestCase):
         data = {"topics": [{"name": "بواجي", "norm": "بواجي", "snorm": "x" * 400,
                             "f": {"models": [], "engines": ["2.0"]}, "n": 1,
                             "sources": [{"label": "a", "url": "https://e.com", "kind": "web"}]}],
-                "articles": [{"norm": "y" * 9000, "blocks": [{"links": [{"url": "u", "kind": "web"}]}]}],
-                "schedule": [{"replace": [{"links": [{"url": "u", "kind": "web"}]}], "inspect": []}],
+                "articles": [{"norm": "y" * 9000,
+                              "blocks": [{"t": "نص", "runs": [{"t": "نص"},
+                                                              {"t": "رابط", "u": "u", "k": "web"}]}]}],
+                "schedule": [{"replace": [{"t": "بند", "runs": [{"t": "بند", "u": "u", "k": "web"}]}],
+                              "inspect": []}],
                 "docs": [{"sections": [{"title": "s"}] * 40, "f": {"models": [], "years": [[2019, 2019]]}}]}
         small = render.compact(data)
         t = small["topics"][0]
@@ -192,7 +195,11 @@ class Render(unittest.TestCase):
         self.assertEqual(t["f"], {"engines": ["2.0"]})            # empty facets dropped
         self.assertEqual(len(small["articles"][0]["norm"]), 3000)
         self.assertEqual(len(small["docs"][0]["sections"]), 25)
-        self.assertNotIn("kind", small["schedule"][0]["replace"][0]["links"][0])
+        block = small["articles"][0]["blocks"][0]
+        self.assertNotIn("t", block)                      # rebuilt from the runs in the browser
+        self.assertNotIn("k", block["runs"][1])           # kind derived from the URL
+        self.assertEqual(block["runs"][1]["u"], "u")      # the link itself survives
+        self.assertNotIn("k", small["schedule"][0]["replace"][0]["runs"][0])
 
 
 SNAPSHOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -219,6 +226,16 @@ class RealDocument(unittest.TestCase):
         sched = self.parsed["schedule"]
         self.assertEqual(len(sched), 14)
         self.assertGreaterEqual(sum(1 for s in sched if s["km"]), 10)
+
+    def test_prose_keeps_links_inline_instead_of_duplicating_them(self):
+        item = next(i for iv in self.parsed["schedule"] for i in iv["replace"]
+                    if len(i["runs"]) > 3)
+        linked = [r for r in item["runs"] if "u" in r]
+        self.assertTrue(linked, "a prose item should carry inline links")
+        # each linked phrase appears once, inside its run — not again as loose text
+        for r in linked:
+            plain = "".join(x["t"] for x in item["runs"] if "u" not in x)
+            self.assertNotIn(r["t"], plain)
 
     def test_articles_and_anchor_resolution(self):
         self.assertGreater(len(self.parsed["articles"]), 10)

@@ -123,17 +123,38 @@ def parse_interval(label):
     return km, months
 
 
+def as_runs(blk):
+    """Keep text and links interleaved in reading order.
+
+    Most of this document is prose whose key phrases *are* the links, so flattening a
+    paragraph into text plus a separate link list prints every phrase twice."""
+    runs = []
+    for kind, text, url in blk:
+        text = re.sub(r"[ \t]+", " ", text)
+        text = re.sub(r"[\s*]{3,}", " ", text)
+        if kind == "L":
+            runs.append({"t": text.strip() or "↗", "u": url, "k": classify(url)})
+        elif text.strip():
+            if runs and "u" not in runs[-1]:
+                runs[-1]["t"] += text
+            else:
+                runs.append({"t": text})
+    return runs
+
+
+def runs_text(runs):
+    return re.sub(r"\s+", " ", " ".join(r["t"] for r in runs)).strip(" ,،*-")
+
+
 def cell_items(tc, rels):
     """One item per paragraph, carrying its own links — matches how the doc is written."""
     items = []
     for blk in cell_blocks(tc, rels):
-        text = re.sub(r"[ \t]+", " ", "".join(t[1] for t in blk))
-        text = re.sub(r"[\s*]{3,}", " ", text).strip(" ,،*-")
-        links = [{"label": t[1].strip() or "↗", "url": t[2], "kind": classify(t[2])}
-                 for t in blk if t[0] == "L"]
-        if len(text) < 3 and not links:
+        runs = as_runs(blk)
+        text = runs_text(runs)
+        if len(text) < 3 and not any("u" in r for r in runs):
             continue
-        items.append({"t": text, "links": links[:12]})
+        items.append({"t": text, "runs": runs})
     return items
 
 
@@ -182,12 +203,11 @@ def extract_articles(body, rels):
         note_bookmarks(node)
         toks = tokens(node, rels) if node.tag == W + "p" else \
                [t for p in node.iter(W + "p") for t in tokens(p, rels)]
-        text = re.sub(r"[ \t]+", " ", "".join(t[1] for t in toks)).strip()
-        links = [{"label": t[1].strip() or "↗", "url": t[2], "kind": classify(t[2])}
-                 for t in toks if t[0] == "L"]
-        if not text and not links:
+        runs = as_runs(toks)
+        text = runs_text(runs)
+        if not runs:
             return
-        cur["blocks"].append({"t": text, "row": is_row, "links": links[:24]})
+        cur["blocks"].append({"t": text, "row": is_row, "runs": runs})
 
     seen_index = False
     for ch in body:
@@ -214,11 +234,8 @@ def extract_articles(body, rels):
             if cur is None:
                 cur = {"id": "intro", "title": "مقدمة الدليل", "blocks": []}
                 arts.append(cur)
-            toks = tokens(ch, rels)
             cur["blocks"].append({"t": text, "row": False, "h": True,
-                                  "links": [{"label": t[1].strip() or "↗", "url": t[2],
-                                             "kind": classify(t[2])}
-                                            for t in toks if t[0] == "L"][:24]})
+                                  "runs": as_runs(tokens(ch, rels))})
             continue
         emit(ch)
 
@@ -233,7 +250,7 @@ def extract_articles(body, rels):
         blob = a["title"] + " " + " ".join(b["t"] for b in a["blocks"])
         a["f"] = facets(blob)
         a["norm"] = norm_ar(blob[:6000])
-        a["nlinks"] = sum(len(b["links"]) for b in a["blocks"])
+        a["nlinks"] = sum(1 for b in a["blocks"] for r in b["runs"] if "u" in r)
         a["chars"] = sum(len(b["t"]) for b in a["blocks"])
         out.append(a)
     live = {a["id"] for a in out}
@@ -248,20 +265,21 @@ def parse(raw):
     schedule = extract_schedule(tbls[1], rels)
     articles, anchors = extract_articles(body, rels)
 
-    def resolve(links):
+    def resolve(links, key="url"):
         for l in links:
-            if l["url"].startswith("#"):
-                hit = anchors.get(l["url"][1:])
+            url = l.get(key, "")
+            if url.startswith("#"):
+                hit = anchors.get(url[1:])
                 if hit:
                     l["nav"] = hit
     for t in topics:
         resolve(t["sources"])
     for iv in schedule:
         for it in iv["replace"] + iv["inspect"]:
-            resolve(it["links"])
+            resolve(it["runs"], key="u")
     for a in articles:
         for b in a["blocks"]:
-            resolve(b["links"])
+            resolve(b["runs"], key="u")
 
     all_links = [{"text": t[1].strip(), "url": t[2], "kind": classify(t[2])}
                  for p in body.iter(W + "p") for t in tokens(p, rels) if t[0] == "L"]
