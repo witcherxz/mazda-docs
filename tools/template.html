@@ -98,8 +98,7 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .marks .more{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
   border:1px dashed var(--rule-strong);border-radius:3px;padding:0 5px;height:18px}
 .marks .more:hover{color:var(--accent);border-color:var(--accent)}
-.col li.hit{color:var(--ink);font-weight:500}
-.col li.hit::marker{color:var(--accent)}
+.task.hit .txt{color:var(--ink);font-weight:500}
 .search{display:flex;align-items:center;gap:9px;border:1px solid var(--rule-strong);border-radius:4px;
   background:var(--ground);padding:0 12px}
 .search:focus-within{border-color:var(--accent)}
@@ -178,9 +177,7 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
 .col{background:var(--surface);padding:12px 15px;display:flex;flex-direction:column;gap:8px}
 .col h3{font-size:12px;letter-spacing:.06em;color:var(--ink-3);font-family:"IBM Plex Sans Arabic",sans-serif;font-weight:600}
-.col ul{margin:0;padding-inline-start:1.1em;display:flex;flex-direction:column;gap:10px;font-size:14px;color:var(--ink-2)}
-.col li{display:flex;flex-direction:column;gap:5px}
-.col li::marker{color:var(--rule-strong)}
+.col ul{margin:0;padding:0;font-size:14px;color:var(--ink-2)}
 
 /* ---------- articles ---------- */
 .arts{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
