@@ -77,6 +77,7 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .mk{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:18px;
   padding:0 5px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1;
   border:1px solid var(--rule);border-radius:3px;color:var(--ink-3);background:var(--surface-2)}
+.mk{margin:0 1px}
 .mk:hover{border-color:currentColor;text-decoration:none}
 .mk.telegram{color:var(--tg)} .mk.youtube{color:var(--yt)} .mk.google-doc{color:var(--gd)}
 .mk.web,.mk.nhtsa,.mk.image,.mk.maps,.mk.instagram,.mk.twitter{color:var(--web)}
@@ -465,6 +466,28 @@ function linkNode(r, ts, num){
 
 /* Between plain phrases the doc's ">" means "then" — a step in a procedure.
    Render those as steps with a chevron rather than leaving the arrow in the text. */
+/* The parser trims each run, so a link would otherwise butt straight against the
+   word after it. Re-insert the separating space unless punctuation follows. */
+function needSpace(body, next){
+  const last = body.lastChild;
+  if(!last) return false;
+  const prev = last.textContent || "";
+  if(/\s$/.test(prev) || /^[\s،,.:;!؟%)\]}»<>]/.test(next || "")) return false;
+  if(/[(\[{«]$/.test(prev)) return false;
+  /* Arabic one-letter prefixes attach to the word after them: و+نيكل, ب+الجوال */
+  if(/(^|\s)[وفبلك]$/.test(prev)) return false;
+  return true;
+}
+function pushText(body, text, ts){
+  if(needSpace(body, text)) body.append(document.createTextNode(" "));
+  body.append(highlightWords(text, ts));
+}
+function pushLink(body, r, ts, num){
+  const label = num ? String(num) : r.t;
+  if(needSpace(body, label)) body.append(document.createTextNode(" "));
+  body.append(linkNode(r, ts, num));
+}
+
 function appendText(body, text, ts){
   const parts = text.split(">")
     .map(p => p.replace(/^[\s،,]+|[\s،,]+$/g, ""))
@@ -476,7 +499,7 @@ function appendText(body, text, ts){
       sep.textContent = "‹";
       body.append(sep);
     }
-    body.append(highlightWords(part, ts));
+    pushText(body, part, ts);
   });
 }
 
@@ -488,10 +511,7 @@ function renderTask(task, ts){
   let n = 0, prevMarker = false;
   task.runs.forEach(r => {
     if(r.u && MARKER.test(r.t)){ marks.append(linkNode(r, ts, ++n)); prevMarker = true; return; }
-    if(r.u){
-      if(body.childNodes.length) body.append(document.createTextNode(" "));
-      body.append(linkNode(r, ts)); prevMarker = false; return;
-    }
+    if(r.u){ pushLink(body, r, ts); prevMarker = false; return; }
     if(SEPARATOR.test(r.t) && (prevMarker || !body.childNodes.length)) return;
     prevMarker = false;
     appendText(body, r.t, ts);
@@ -536,8 +556,7 @@ function renderRuns(o, ts, tag){
       prevMarker = true;
     } else {
       mark = 0; prevMarker = false;
-      node.append(document.createTextNode(" "));
-      node.append(linkNode(r, ts));
+      pushLink(node, r, ts);
     }
   });
   return node;
