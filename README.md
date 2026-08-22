@@ -16,7 +16,7 @@ today; this repository only reads, and never writes back.
 ## Run it
 
 ```bash
-make fast     # hub document only — ~2 seconds
+make fast     # hub document only, ~1 second — writes build/preview.html, not the site
 make build    # everything, satellites from cache
 make live     # pull the doc from Google first
 make test     # extraction guardrails (22 tests)

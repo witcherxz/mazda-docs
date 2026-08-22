@@ -70,13 +70,17 @@ def compact(data):
     return d
 
 
-def build(data, out=SITE, template=TEMPLATE, dist=DIST):
+def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
+    """deploy=False renders a preview only, leaving site/ and dist/ untouched."""
     tpl = open(template, encoding="utf-8").read()
     small = compact(data)
     payload = json.dumps(small, ensure_ascii=False, separators=(",", ":"))
 
     os.makedirs(os.path.dirname(out), exist_ok=True)
     open(out, "w", encoding="utf-8").write(tpl.replace("/*__DATA__*/null", payload))
+
+    if not deploy:
+        return out, os.path.getsize(out)
 
     os.makedirs(dist, exist_ok=True)
     shell = tpl.replace("/*__DATA__*/null", "null")

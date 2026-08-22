@@ -15,7 +15,7 @@ build:
 live:
 	python3 tools/pipeline.py --live
 
-fast:
+fast:                                   # preview build; leaves site/ and dist/ alone
 	python3 tools/pipeline.py --no-satellites
 
 links:

@@ -246,9 +246,15 @@ def main():
               open(os.path.join(BUILD, "run.json"), "w"), ensure_ascii=False, indent=1)
     open(os.path.join(BUILD, "snapshot.sha"), "w").write(doc_sha + "\n")
 
-    out, size = render.build(data)
-    print(f"→ site {out} ({size/1e6:.2f} MB) in {time.time()-t0:.1f}s"
-          + ("  [dry run: nothing stored]" if args.dry_run else ""))
+    preview = args.dry_run or args.no_satellites   # a partial build must not clobber the site
+    out, size = render.build(
+        data,
+        out=os.path.join(BUILD, "preview.html") if preview else render.SITE,
+        deploy=not preview)
+    tag = " [preview only — site/ and dist/ untouched]" if preview else ""
+    if args.dry_run:
+        tag += "  [dry run: nothing stored]"
+    print(f"→ site {out} ({size/1e6:.2f} MB) in {time.time()-t0:.1f}s" + tag)
     if sat_errors:
         print(f"  ⚠ {len(sat_errors)} satellite fetch errors (see build/run.json)")
     return 0
