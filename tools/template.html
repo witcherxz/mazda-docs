@@ -62,15 +62,42 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .tabs .badge{font-size:11px;color:var(--ink-3);margin-inline-start:5px}
 .tabs button.nohits{opacity:.45}
 .jump{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:12px}
-.inl{color:var(--web);border-bottom:1px dotted currentColor;text-decoration:none}
-.inl:hover{text-decoration:none;border-bottom-style:solid}
-.inl.telegram{color:var(--tg)} .inl.youtube{color:var(--yt)} .inl.google-doc{color:var(--gd)}
-.inl.archive,.inl.shortlink,.inl.internal-anchor,.inl.gdrive{color:var(--arch)}
+/* a linked phrase stays ink-coloured; only its underline carries the source colour,
+   so a paragraph of links no longer reads as a wall of decoration */
+.inl{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule-strong);
+  padding-bottom:1px}
+.inl:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.inl.telegram{border-bottom-color:color-mix(in srgb, var(--tg) 55%, transparent)}
+.inl.youtube{border-bottom-color:color-mix(in srgb, var(--yt) 55%, transparent)}
+.inl.google-doc{border-bottom-color:color-mix(in srgb, var(--gd) 55%, transparent)}
 .inl.nav{border-bottom-style:dashed}
 .inl.dead{color:var(--ink-3);text-decoration:line-through;border-bottom:0}
-.inl.mk{border-bottom:0;font-family:"IBM Plex Mono",monospace;font-size:.72em;
-  vertical-align:super;line-height:0;padding:0 2px;opacity:.85}
-.inl.mk:hover{opacity:1;text-decoration:underline}
+
+/* source references: numbered, quiet, colour-coded by kind */
+.mk{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:18px;
+  padding:0 5px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1;
+  border:1px solid var(--rule);border-radius:3px;color:var(--ink-3);background:var(--surface-2)}
+.mk:hover{border-color:currentColor;text-decoration:none}
+.mk.telegram{color:var(--tg)} .mk.youtube{color:var(--yt)} .mk.google-doc{color:var(--gd)}
+.mk.web,.mk.nhtsa,.mk.image,.mk.maps,.mk.instagram,.mk.twitter{color:var(--web)}
+.mk.dead{color:var(--ink-3);text-decoration:line-through;opacity:.6}
+.mk.hidden{display:none}
+
+.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.task{display:flex;gap:10px;align-items:flex-start;padding:5px 2px;
+  border-bottom:1px solid var(--rule);line-height:1.6}
+.task:last-child{border-bottom:0}
+.task:hover{background:var(--surface-2)}
+.task::before{content:"";flex:none;width:5px;height:5px;margin-top:8px;border-radius:1px;
+  background:var(--rule-strong)}
+.step{color:var(--ink-3);padding:0 6px;font-size:.9em}
+.task.plain::before{background:none;border:1px solid var(--rule-strong)}
+.task.hit{background:var(--accent-bg)}
+.task .txt{flex:1;min-width:0}
+.task .marks{display:flex;gap:3px;flex-wrap:wrap;flex:none;max-width:46%;justify-content:flex-end}
+.marks .more{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+  border:1px dashed var(--rule-strong);border-radius:3px;padding:0 5px;height:18px}
+.marks .more:hover{color:var(--accent);border-color:var(--accent)}
 .col li.hit{color:var(--ink);font-weight:500}
 .col li.hit::marker{color:var(--accent)}
 .search{display:flex;align-items:center;gap:9px;border:1px solid var(--rule-strong);border-radius:4px;
@@ -393,48 +420,128 @@ function runsText(o){
   return o._t;
 }
 const MARKER = /^[\s>*«»·،,.\-–—()\d]+$/;
+/* Maintenance cells are comma-separated task lists written as one paragraph.
+   Split them back into tasks so each line is one thing to do. */
+function splitTasks(runs){
+  const tasks = [];
+  let cur = {runs: []};
+  const push = () => {
+    if(cur.runs.some(r => r.u || (r.t || "").trim())) tasks.push(cur);
+    cur = {runs: []};
+  };
+  (runs || []).forEach(r => {
+    if(r.u){ cur.runs.push(r); return; }
+    r.t.split(/([,،])/).forEach(part => {
+      if(part === "," || part === "،"){ push(); return; }
+      if(part) cur.runs.push({t: part});
+    });
+  });
+  push();
+  /* a fragment that is only source markers belongs to the task before it */
+  const merged = [];
+  tasks.forEach(t => {
+    const bare = t.runs.every(r => (r.u && MARKER.test(r.t)) || !(r.t || "").trim());
+    if(bare && merged.length) merged[merged.length - 1].runs.push(...t.runs);
+    else merged.push(t);
+  });
+  return merged;
+}
 const SEPARATOR = /^[\s>‹›«»<]+$/;      /* the arrows that sat between the old markers */
+function linkNode(r, ts, num){
+  const kind = r.k || kindOf(r.u);
+  const bad = (DATA.health || {})[r.u];
+  const dead = bad && bad[0] === "dead";
+  const archive = dead ? bad[1] : null;
+  const a = el("a", (num ? "mk " : "inl ") + kind + (dead ? " dead" : "") + (r.nav ? " nav" : ""));
+  a.href = archive || r.u; a.target = "_blank"; a.rel = "noopener";
+  a.title = dead ? (archive ? "الرابط الأصلي معطّل — يفتح نسخة من الأرشيف" : "الرابط معطّل")
+                 : `${KIND_AR[kind]||kind} — ${r.u}`;
+  if(r.nav){
+    a.href = "#art=" + r.nav.a; a.target = "_self";
+    a.onclick = ev => { ev.preventDefault(); state.tab = "arts"; state.artId = r.nav.a;
+      state.artBlock = r.nav.b; state.q = ""; $("#q").value = ""; render(); };
+  }
+  if(num){ a.textContent = String(num); a.title = `مصدر ${num} — ${r.u}`; }
+  else a.append(highlightWords(r.t, ts));
+  return a;
+}
+
+/* Between plain phrases the doc's ">" means "then" — a step in a procedure.
+   Render those as steps with a chevron rather than leaving the arrow in the text. */
+function appendText(body, text, ts){
+  const parts = text.split(">")
+    .map(p => p.replace(/^[\s،,]+|[\s،,]+$/g, ""))
+    /* drop leftovers like a lone ")" from the doc's ad-hoc parentheses */
+    .filter(p => p && !/^[()\[\]{}\s.،,*\-–—:؛]+$/.test(p));
+  parts.forEach((part, i) => {
+    if(i){
+      const sep = el("span","step");
+      sep.textContent = "‹";
+      body.append(sep);
+    }
+    body.append(highlightWords(part, ts));
+  });
+}
+
+/* one task per line: what to do, then its sources as numbered references */
+function renderTask(task, ts){
+  const li = el("li","task");
+  const body = el("span","txt");
+  const marks = el("span","marks");
+  let n = 0, prevMarker = false;
+  task.runs.forEach(r => {
+    if(r.u && MARKER.test(r.t)){ marks.append(linkNode(r, ts, ++n)); prevMarker = true; return; }
+    if(r.u){
+      if(body.childNodes.length) body.append(document.createTextNode(" "));
+      body.append(linkNode(r, ts)); prevMarker = false; return;
+    }
+    if(SEPARATOR.test(r.t) && (prevMarker || !body.childNodes.length)) return;
+    prevMarker = false;
+    appendText(body, r.t, ts);
+  });
+  const text = body.textContent.trim();
+  if(!text && !n) return null;
+  if(!text) body.append(document.createTextNode("مصادر إضافية"));
+  li.append(body);
+  if(n){
+    const CAP = 8;
+    if(n > CAP){
+      const extra = [...marks.children].slice(CAP);
+      extra.forEach(x => x.classList.add("hidden"));
+      const more = el("button","more", `+${extra.length}`);
+      more.title = "عرض بقية المصادر";
+      more.onclick = () => { extra.forEach(x => x.classList.remove("hidden")); more.remove(); };
+      marks.append(more);
+    }
+    li.append(marks);
+  }
+  if(!body.querySelector("a")) li.classList.add("plain");
+  return li;
+}
+
 function renderRuns(o, ts, tag){
   const node = el(tag || "span");
-  let mark = 0, lastMarker = false;
   const runs = o.runs || [];
+  let mark = 0, prevMarker = false;
   runs.forEach((r, i) => {
     const nextIsMarker = () => {
       const n = runs[i + 1];
       return !!(n && n.u && MARKER.test(n.t));
     };
     if(!r.u){
-      /* "phrase > ¹ > ² > ³" reads as "phrase ¹ ² ³" */
-      if(SEPARATOR.test(r.t) && (lastMarker || nextIsMarker())) return;
-      lastMarker = false;
-      node.append(highlightWords(r.t, ts));
+      if(SEPARATOR.test(r.t) && (prevMarker || nextIsMarker())) return;
+      prevMarker = false;
+      appendText(node, r.t, ts);
       return;
     }
-    const kind = r.k || kindOf(r.u);
-    const bad = (DATA.health || {})[r.u];
-    const dead = bad && bad[0] === "dead";
-    const archive = dead ? bad[1] : null;
-    const a = el("a", "inl " + kind + (dead ? " dead" : "") + (r.nav ? " nav" : ""));
-    a.href = archive || r.u; a.target = "_blank"; a.rel = "noopener";
-    a.title = dead ? (archive ? "الرابط الأصلي معطّل — يفتح نسخة من الأرشيف" : "الرابط معطّل")
-                   : `${KIND_AR[kind]||kind} — ${r.u}`;
-    if(r.nav){
-      a.href = "#art=" + r.nav.a; a.target = "_self";
-      a.onclick = ev => { ev.preventDefault(); state.tab = "arts"; state.artId = r.nav.a;
-        state.artBlock = r.nav.b; state.q = ""; $("#q").value = ""; render(); };
-    }
-    /* "*", ">2", ">3" are extra sources for the phrase before them — number them like
-       footnotes instead of printing a chain of symbols */
     if(MARKER.test(r.t)){
-      a.classList.add("mk");
-      a.textContent = String(++mark);
-      a.title = `مصدر إضافي ${mark} — ${r.u}`;
-      lastMarker = true;
+      node.append(linkNode(r, ts, ++mark));
+      prevMarker = true;
     } else {
-      mark = 0; lastMarker = false;
-      a.append(highlightWords(r.t, ts));
+      mark = 0; prevMarker = false;
+      node.append(document.createTextNode(" "));
+      node.append(linkNode(r, ts));
     }
-    node.append(a);
   });
   return node;
 }
@@ -767,11 +874,16 @@ function viewSched(counts){
     [["تغيير / تنظيف", iv.replace], ["فحص", iv.inspect]].forEach(([title, items]) => {
       const col = el("div","col");
       col.append(el("h3",null,`${title} · ${items.length}`));
-      const ul = el("ul");
+      const ul = el("ul","tasks");
+      const ts = terms();
       items.forEach(it => {
-        const li = el("li", itemMatches(runsText(it)) ? "hit" : null);
-        li.append(renderRuns(it, terms()));
-        ul.append(li);
+        const hit = itemMatches(runsText(it));
+        splitTasks(it.runs).forEach(task => {
+          const li = renderTask(task, ts);
+          if(!li) return;
+          if(hit && itemMatches(li.textContent)) li.classList.add("hit");
+          ul.append(li);
+        });
       });
       col.append(ul);
       cols.append(col);

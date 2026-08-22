@@ -61,8 +61,10 @@ State lives in the URL (`#tab=docs&q=…`), so any view is shareable.
 - **الفهرس** — every topic with its ranked sources, colour-coded by kind (Telegram, YouTube,
   document, site), filtered by model / engine / year / source / document.
 - **جدول الصيانة** — the maintenance matrix: interval → replace/clean vs inspect, with the
-  "includes the previous service" inheritance the doc encodes. Prose keeps its links inline
-  where they sit in the sentence, and the doc's `>1>2>3` alternates become footnote numbers.
+  "includes the previous service" inheritance the doc encodes. The doc writes each cell as one
+  comma-separated paragraph; the UI splits it back into one task per row, with the task's
+  sources as numbered references at the end of its line and `>` between phrases rendered as
+  procedure steps (`‹`), which is what it means in this document.
 - **الشروحات** — the long-form sections, with internal doc links turned into in-app jumps.
 - **المستندات** — the 48 satellite documents, their sections, and a jump into their topics.
 - **التحديثات** — what the community changed, run by run.
