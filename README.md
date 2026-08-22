@@ -105,6 +105,11 @@ and `.github/workflows/sync.yml` rebuilds and republishes daily.
 [FEASIBILITY.md](FEASIBILITY.md) is the study this was built from — the structural patterns
 in the source document, what parses reliably, what needs human curation, and the risks.
 
+## Licence
+
+The code is MIT. The guide's content is not — it belongs to the community that writes it.
+See [LICENSE](LICENSE).
+
 ## Credit
 
 All content is written and maintained by the Saudi Mazda owners' community —
