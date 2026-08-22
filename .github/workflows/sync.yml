@@ -1,4 +1,6 @@
 name: sync-and-deploy
+# Requires Settings → Pages → Source: "GitHub Actions" once per repository.
+run-name: sync (${{ github.event_name }})
 
 on:
   schedule:
