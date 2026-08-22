@@ -5,15 +5,37 @@ hand-rescued 112 of them through archive.org). This walks the oldest-checked lin
 a slice at a time, records what it finds, and looks up a Wayback snapshot for the
 dead ones so the site can offer a fallback.
 """
-import json, urllib.error, urllib.parse, urllib.request
+import json, re, urllib.error, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 from common import UA
 from store import now
 
 WAYBACK = "https://archive.org/wayback/available?url="
-# t.me and instagram answer 200 for deleted posts, so a green check means little there
-UNRELIABLE = {"telegram", "instagram", "twitter", "internal-anchor"}
+# instagram and twitter answer 200 for deleted posts, so a green check means little there
+UNRELIABLE = {"instagram", "twitter", "internal-anchor"}
+TG_RE = re.compile(r"https?://t\.me/([^/?#]+)/(\d+)")
+
+
+def probe_telegram(url, timeout=20):
+    """t.me answers 200 for deleted posts, so read the embed and look for the real
+    markers: a message bubble with text means the post is alive."""
+    m = TG_RE.match(url)
+    if not m:
+        return "unverified", None
+    embed = f"https://t.me/{m.group(1)}/{m.group(2)}?embed=1&mode=tme"
+    try:
+        req = urllib.request.Request(embed, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            html = r.read().decode("utf-8", "replace")
+    except Exception as e:                                 # noqa: BLE001
+        return ("dead" if isinstance(e, urllib.error.HTTPError) and e.code in (404, 410)
+                else "error"), None
+    if "tgme_widget_message_text" in html:
+        return "ok", None
+    if "tgme_widget_message_error" in html:
+        return "dead", None
+    return "unverified", None
 
 
 def probe(url, timeout=12):
@@ -63,7 +85,7 @@ def classify_status(code, err, kind):
 
 def run(db, limit=200, workers=8, include_unreliable=False):
     q = ("SELECT url, kind FROM link "
-         "WHERE (? OR kind NOT IN ('telegram','instagram','twitter','internal-anchor')) "
+         "WHERE (? OR kind NOT IN ('instagram','twitter','internal-anchor')) "
          "ORDER BY checked_at IS NOT NULL, checked_at ASC LIMIT ?")
     rows = [(r["url"], r["kind"]) for r in db.execute(q, (int(include_unreliable), limit))
             if r["url"].startswith("http")]
@@ -71,8 +93,11 @@ def run(db, limit=200, workers=8, include_unreliable=False):
 
     def work(item):
         url, kind = item
-        code, err = probe(url)
-        status = classify_status(code, err, kind)
+        if kind == "telegram":
+            status, code = probe_telegram(url)
+        else:
+            code, err = probe(url)
+            status = classify_status(code, err, kind)
         archive = wayback(url) if status == "dead" else None
         return url, status, code, archive
 

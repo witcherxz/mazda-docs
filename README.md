@@ -9,8 +9,8 @@ and the 48 satellite documents it links to.
 today; this repository only reads, and never writes back.
 
 ```
-3,584 topics · 6,269 ranked sources · 49 documents · 18,069 links
-14 maintenance intervals · 19 article sections · full change history
+3,584 topics · 6,269 ranked sources · 49 documents · 18,053 links
+14 maintenance intervals · 19 curated sections · 2,958 links health-checked (91 dead)
 ```
 
 ## Run it
@@ -57,7 +57,9 @@ State lives in the URL (`#tab=docs&q=…`), so any view is shareable.
 - **التحديثات** — what the community changed, run by run.
 
 Dead links are struck through and, where the Wayback Machine has a copy, they open the
-archived version instead.
+archived version instead — Telegram links are verified through the message embed, since
+`t.me` answers 200 even for deleted posts. The deployed build registers a service worker, so
+the guide keeps working in a workshop with no signal.
 
 ## Pipeline
 

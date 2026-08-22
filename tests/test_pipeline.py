@@ -46,6 +46,17 @@ class Normalization(unittest.TestCase):
         self.assertEqual(f["turbo"], "turbo")
         self.assertEqual(f["years"], [[2015, 2019]])
 
+    def test_mangled_google_doc_url_is_rebuilt_from_its_id(self):
+        broken = ("https://docs.google.com/document/d/1F4SRmTDX97YmFXg5YWR_7PDk8Z4tUIkDNEk"
+                  "gHEafPOQ/edit%20%D9%85%D9%84%D8%A7")
+        self.assertEqual(common.normalize_url(broken),
+                         "https://docs.google.com/document/d/"
+                         "1F4SRmTDX97YmFXg5YWR_7PDk8Z4tUIkDNEkgHEafPOQ/edit")
+
+    def test_normalize_leaves_other_links_and_anchors_alone(self):
+        self.assertEqual(common.normalize_url("#kix.abc"), "#kix.abc")
+        self.assertEqual(common.normalize_url(" https://t.me/x/1 "), "https://t.me/x/1")
+
     def test_facets_detect_naturally_aspirated(self):
         self.assertEqual(common.facets("محرك 2.0 بدون توربو")["turbo"], "na")
 

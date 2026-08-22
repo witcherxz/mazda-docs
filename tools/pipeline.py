@@ -60,6 +60,15 @@ def load_hub(live, snapshot):
     return open(snapshot, "rb").read(), "snapshot"
 
 
+def section_titles():
+    """Curated names for the prose sections (the doc has no heading styles)."""
+    path = os.path.join(ROOT, "data", "section-titles.json")
+    if not os.path.exists(path):
+        return {}
+    return {k: v for k, v in json.load(open(path, encoding="utf-8")).items()
+            if not k.startswith("_")}
+
+
 def aliases():
     """Curated synonym lists that widen fuzzy search (see data/aliases.json)."""
     path = os.path.join(ROOT, "data", "aliases.json")
@@ -127,6 +136,21 @@ def main():
             first = next((c for c in t["norm"] if c.strip()), "")
             t["letter"] = first if "\u0621" <= first <= "\u064a" else "A-Z"
         topics.extend(d["topics"])
+    # one alphabetical order for hub and satellite topics together
+    letter_order = {}
+    for t in parsed["topics"]:
+        letter_order.setdefault(t["letter"], len(letter_order))
+    topics.sort(key=lambda t: (letter_order.get(t["letter"], 99), t["norm"]))
+
+    titles = section_titles()
+    renamed = 0
+    for a in parsed["articles"]:
+        if a["id"] in titles:
+            a["orig_title"] = a["title"]
+            a["title"] = titles[a["id"]]
+            renamed += 1
+    print(f"→ sections: {renamed}/{len(parsed['articles'])} carry a curated title")
+
     groups = aliases()
     widened = apply_aliases(topics, groups)
     print(f"→ aliases: {len(groups)} groups widened {widened} topics")
@@ -164,11 +188,19 @@ def main():
         import linkcheck
         print(f"  link health: {linkcheck.run(db, limit=args.linkcheck)}")
 
+    # only links still present in this run — a URL the community fixed should stop
+    # being reported as dead
     health = {r["url"]: [r["status"], r["archive_url"]] for r in db.execute(
-        "SELECT url,status,archive_url FROM link WHERE status IN ('dead','blocked','error')")}
+        "SELECT url,status,archive_url FROM link "
+        "WHERE status IN ('dead','blocked','error') AND last_seen=?", (sync.at,))}
+    dead_list = [{"url": r["url"], "kind": r["kind"], "refs": r["refs"],
+                  "archive": r["archive_url"]} for r in db.execute(
+        "SELECT url,kind,refs,archive_url FROM link WHERE status='dead' AND last_seen=? "
+        "ORDER BY refs DESC LIMIT 100", (sync.at,))]
     dead_total = sum(1 for v in health.values() if v[0] == "dead")
     checked_total = db.execute(
-        "SELECT COUNT(*) c FROM link WHERE checked_at IS NOT NULL").fetchone()["c"]
+        "SELECT COUNT(*) c FROM link WHERE checked_at IS NOT NULL AND last_seen=?",
+        (sync.at,)).fetchone()["c"]
 
     if not args.dry_run:
         append_history({"at": store.now(), "sha": doc_sha, "origin": origin,
@@ -203,6 +235,7 @@ def main():
                   "url": f"https://docs.google.com/document/d/{d['id']}/edit"}
                  for d in sats],
         "health": health,
+        "dead": dead_list,
         "changes": hist_changes,
         "runs": [{"at": e["at"], "topics": e["stats"]["topics"],
                   "changes": len(e["changes"]), "sha": e["sha"][:12]} for e in reversed(hist)],

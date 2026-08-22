@@ -9,7 +9,7 @@ import re
 import urllib.parse
 from html.parser import HTMLParser
 
-from common import MOBILE, classify, facets, fetch, norm_ar, real_name, slug
+from common import MOBILE, classify, facets, fetch, norm_ar, normalize_url, real_name, slug
 
 SKIP_TAGS = {"script", "style"}
 HEADINGS = {"h1", "h2", "h3", "h4"}
@@ -20,8 +20,8 @@ def unwrap(url):
     if "google.com/url?" in url:
         q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query).get("q")
         if q:
-            return q[0]
-    return url
+            return normalize_url(q[0])
+    return normalize_url(url)
 
 
 class DocParser(HTMLParser):

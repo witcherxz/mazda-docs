@@ -51,8 +51,14 @@ def connect(path=DB_PATH):
     parent = os.path.dirname(path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    db = sqlite3.connect(path)
+    db = sqlite3.connect(path, timeout=60)
     db.row_factory = sqlite3.Row
+    if path != ":memory:":
+        try:                                       # link checks run alongside builds
+            db.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError:
+            pass                                   # another writer holds it; busy_timeout covers us
+    db.execute("PRAGMA busy_timeout=60000")
     db.executescript(SCHEMA)
     return db
 
@@ -172,23 +178,20 @@ class Sync:
 
     # ----------------------------------------------------------------- links
     def links(self, links):
-        counts = {}
+        counts, kinds = {}, {}
         for l in links:
-            counts[l["url"]] = counts.get(l["url"], 0) + 1
+            url = l["url"]
+            counts[url] = counts.get(url, 0) + 1
+            kinds.setdefault(url, l["kind"])
         known = {r["url"] for r in self.db.execute("SELECT url FROM link")}
-        rows = []
-        for url, refs in counts.items():
-            kind = next((l["kind"] for l in links if l["url"] == url), "web") \
-                if url not in known else None
-            rows.append((url, kind, refs))
-        for url, kind, refs in rows:
-            if url in known:
-                self.db.execute("UPDATE link SET refs=?, last_seen=? WHERE url=?",
-                                (refs, self.at, url))
-            else:
-                self.db.execute(
-                    "INSERT INTO link(url,kind,refs,first_seen,last_seen,status)"
-                    " VALUES(?,?,?,?,?,'unknown')", (url, kind, refs, self.at, self.at))
+        fresh = [(url, kinds[url], refs, self.at, self.at)
+                 for url, refs in counts.items() if url not in known]
+        seen_again = [(refs, self.at, url)
+                      for url, refs in counts.items() if url in known]
+        self.db.executemany(
+            "INSERT INTO link(url,kind,refs,first_seen,last_seen,status)"
+            " VALUES(?,?,?,?,?,'unknown')", fresh)
+        self.db.executemany("UPDATE link SET refs=?, last_seen=? WHERE url=?", seen_again)
 
     # ------------------------------------------------------------------ done
     def commit(self, stats, ok=True, note=""):

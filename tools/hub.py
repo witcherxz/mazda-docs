@@ -1,8 +1,8 @@
 """Parse the hub Google Doc (.docx export) into topics, schedule and articles."""
-import io, os, re, zipfile
+import io, re, zipfile
 import xml.etree.ElementTree as ET
 
-from common import (AR_DIGITS, classify, facets, norm_ar, real_name, slug)
+from common import AR_DIGITS, classify, facets, norm_ar, normalize_url, real_name, slug
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -22,7 +22,8 @@ def tokens(p, rels):
     out = []
     for ch in p:
         if ch.tag == W + "hyperlink":
-            url = rels.get(ch.get(R + "id"), "#" + (ch.get(W + "anchor") or ""))
+            url = normalize_url(rels.get(ch.get(R + "id"),
+                                         "#" + (ch.get(W + "anchor") or "")))
             if out and out[-1][0] == "L" and out[-1][2] == url:
                 out[-1] = ("L", out[-1][1] + rtext(ch), url)
             else:

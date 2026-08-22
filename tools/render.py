@@ -9,6 +9,34 @@ import copy, json, os
 
 from common import ROOT
 
+SERVICE_WORKER = """/* Offline support for the deployed site: the shell is cached on install, the
+   dataset is served from cache while a fresh copy downloads in the background.
+   Readers in a workshop with bad signal still get the guide. */
+const CACHE = "mazda-v1";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest"];
+
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+self.addEventListener("fetch", e => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  e.respondWith(caches.open(CACHE).then(async cache => {
+    const hit = await cache.match(e.request);
+    const live = fetch(e.request).then(res => {
+      if (res && res.status === 200) cache.put(e.request, res.clone());
+      return res;
+    }).catch(() => hit);
+    return hit || live;
+  }));
+});
+"""
+
 TEMPLATE = os.path.join(ROOT, "tools", "template.html")
 SITE = os.path.join(ROOT, "site", "index.html")
 DIST = os.path.join(ROOT, "dist")
@@ -65,6 +93,7 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST):
             '</head><body>' + shell + "</body></html>")
     open(os.path.join(dist, "index.html"), "w", encoding="utf-8").write(page)
     open(os.path.join(dist, "data.json"), "w", encoding="utf-8").write(payload)
+    open(os.path.join(dist, "sw.js"), "w", encoding="utf-8").write(SERVICE_WORKER)
     open(os.path.join(dist, "manifest.webmanifest"), "w", encoding="utf-8").write(
         json.dumps({"name": "دليل مازدا المنظم", "short_name": "دليل مازدا",
                     "lang": "ar", "dir": "rtl", "start_url": ".", "display": "standalone",

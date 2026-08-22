@@ -104,6 +104,10 @@ main{max-width:1180px;margin:0 auto;padding:20px 20px 80px}
 .topic .name{font-weight:600;font-size:15.5px;line-height:1.45;flex:1}
 .topic .name mark{background:none;color:var(--accent);font-weight:700;border-bottom:1.5px solid var(--accent);border-radius:0}
 .topic .n{flex:none;font-size:11.5px;color:var(--ink-3);padding-top:4px}
+.topic .share{flex:none;font-size:12px;color:var(--ink-3);opacity:0;padding:2px 4px;line-height:1}
+.topic:hover .share,.topic .share:focus-visible{opacity:1}
+.topic .share:hover{color:var(--accent)}
+@media(hover:none){.topic .share{opacity:.6}}
 .topic .tags{display:flex;flex-wrap:wrap;gap:4px}
 .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--surface-2);color:var(--ink-3);
   font-family:"IBM Plex Mono",monospace}
@@ -154,6 +158,7 @@ main{max-width:1180px;margin:0 auto;padding:20px 20px 80px}
 .reader{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:20px 22px;
   display:flex;flex-direction:column;gap:14px;max-height:74vh;overflow:auto}
 .reader h2{font-size:22px;color:var(--accent)}
+.reader .orig{margin:0;font-size:12.5px;color:var(--ink-3)}
 .blk{display:flex;flex-direction:column;gap:7px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
 .blk:last-child{border-bottom:0}
 .blk.row{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;padding:10px 12px}
@@ -518,6 +523,7 @@ function viewTopics(){
 
   const list = topicsFiltered();
   const ts = terms();
+  /* the dataset already arrives alphabetically, so "abc" needs no work */
   if(state.sort === "n") list.sort((a,b) => b.n - a.n);
   else if(ts.length && state.sort === "rel") list.sort((a,b) => b._score - a._score);
   state.cursor = Math.max(0, Math.min(state.cursor, list.length - 1));
@@ -530,6 +536,18 @@ function viewTopics(){
     const head = el("div","head");
     head.append(el("span","letter", t.letter||"·"), highlight(t.name, ts),
                 el("span","n mono", String(t.n)));
+    const share = el("button","share","⧉");
+    share.title = "نسخ رابط لهذا الموضوع";
+    share.setAttribute("aria-label", "نسخ رابط لهذا الموضوع");
+    share.onclick = () => {
+      const url = location.origin + location.pathname +
+                  "#q=" + encodeURIComponent(t.name);
+      const done = () => { share.textContent = "✓";
+        setTimeout(() => share.textContent = "⧉", 1200); };
+      if(navigator.clipboard) navigator.clipboard.writeText(url).then(done, done);
+      else done();
+    };
+    head.append(share);
     c.append(head);
     const tags = el("div","tags");
     (t.f.models||[]).forEach(m => tags.append(el("span","tag model", MODEL_AR[m]||m)));
@@ -618,6 +636,10 @@ function viewArts(){
   const rd = el("div","reader");
   if(active){
     rd.append(el("h2",null,active.title));
+    if(active.orig_title){
+      const o = el("p","orig", "في المستند: " + active.orig_title);
+      rd.append(o);
+    }
     active.blocks.forEach((b, bi) => {
       const d = el("div","blk" + (b.row ? " row" : "") + (b.h ? " h" : ""));
       if(b.t) d.append(b.h ? el("h3",null,b.t) : el("p",null,b.t));
@@ -672,6 +694,28 @@ function viewDocs(){
 }
 function viewChanges(){
   const wrap = el("div","runs");
+  const s = DATA.stats;
+  if(s.checked){
+    const card = el("div","run");
+    const rh = el("div","rh");
+    rh.append(el("span","when","صحة الروابط"),
+      el("span",null,`فُحص ${s.checked} من ${s.links} · ${s.dead} معطّل`));
+    card.append(rh);
+    (DATA.dead || []).slice(0, 25).forEach(d => {
+      const row = el("div","chg");
+      row.append(el("span","what", KIND_AR[d.kind] || d.kind));
+      const a = el("a", null, d.url.length > 70 ? d.url.slice(0, 70) + "…" : d.url);
+      a.href = d.archive || d.url; a.target = "_blank"; a.rel = "noopener";
+      a.className = "ltr";
+      row.append(a);
+      row.append(el("span","delta", (d.archive ? "⟲ أرشيف · " : "") + `${d.refs}×`));
+      card.append(row);
+    });
+    if(!(DATA.dead||[]).length){
+      card.append(el("div","chg","لا روابط معطّلة ضمن ما فُحص"));
+    }
+    wrap.append(card);
+  }
   const changes = DATA.changes || [];
   if(!changes.length){
     wrap.append(el("div","empty",
@@ -716,7 +760,9 @@ function render(){
 
 /* ---------- url state ---------- */
 function readHash(){
-  const h = new URLSearchParams(location.hash.slice(1));
+  let h;
+  try { h = new URLSearchParams(location.hash.slice(1)); }
+  catch(e) { return; }
   const tab = h.get("tab");
   if(["topics","sched","arts","docs","changes"].includes(tab)) state.tab = tab;
   if(h.get("q")){ state.q = h.get("q"); $("#q").value = state.q; }
@@ -732,7 +778,9 @@ function writeHash(){
   if(state.docs.size) p.set("doc", [...state.docs][0]);
   if(state.letter) p.set("letter", state.letter);
   const h = p.toString();
-  history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
+  try {   /* sandboxed embeds can refuse history writes; the UI must not care */
+    history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
+  } catch(e) {}
 }
 
 /* ---------- keyboard ---------- */
@@ -807,6 +855,9 @@ function init(d){
   };
   readHash();
   render();
+}
+if("serviceWorker" in navigator && location.protocol.startsWith("http") && !INLINE){
+  navigator.serviceWorker.register("sw.js").catch(() => {});   /* offline support */
 }
 if(INLINE) init(INLINE);
 else fetch("data.json").then(r => r.json()).then(init).catch(err => {

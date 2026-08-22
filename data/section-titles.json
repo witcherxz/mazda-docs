@@ -1,0 +1,22 @@
+{
+  "_comment": "The hub doc has no heading styles, so section titles are whatever oversized line started the section — often a mid-sentence fragment. These curated names replace them in the UI; the original text is kept as orig_title. Keys are the generated section ids; if the community rewrites a section's opening line its id changes and the original title simply shows again.",
+  "intro": "مقدمة الدليل وأدلة المالك والصيانة",
+  "1f3725d27191": "جدول الصيانة الدورية التفصيلي",
+  "70a2e2324c11": "الريموت: الأعراض والحلول",
+  "4fef0385d9a7": "علامة المفتاح: الأسباب خارج بطارية الريموت",
+  "66e68bade7e1": "البواجي: الأرقام ومواعيد التغيير",
+  "84ef1900c0b9": "تغيير البواجي والكويلات: الأدوات والخطوات",
+  "210dc91a4d44": "الدبة (المحوّل الحفاز): الأسباب والحلول",
+  "34a822356232": "أصوات أسفل السيارة: الفحص العام",
+  "e0daee2f88e2": "أسباب أصوات نظام التعليق",
+  "1227b1c342d1": "ربلات الشاصي: الأرقام والبدائل",
+  "e20f60c3ee5d": "جلد المقصات لمازدا 3 (2004-2014)",
+  "924bb8bc970e": "الأعراض المميزة لكل قطعة في التعليق",
+  "6d5ae1b24af1": "اليايات: الأرقام والاستدعاءات",
+  "081599b484fc": "المساعدات الأمامية: الأعراض والفحص",
+  "f8c3cbfed221": "أسباب الرجة أثناء الوقوف",
+  "c2201aaef060": "أسباب الرجة عند التسارع والتعشيق",
+  "da7d05659a1e": "تقسيم أصوات المشي حسب أعراضها",
+  "35d1bb1ff349": "الأصوات: مع السرعة والتشغيل والإطفاء",
+  "7677d5b2f396": "الأصوات: احتكاك وتنسيم ومن الداخلية"
+}

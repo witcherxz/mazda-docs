@@ -59,6 +59,20 @@ def gdoc_id(url):
     m = GDOC_ID.search(url or "")
     return m.group(1) if m else None
 
+
+def normalize_url(url):
+    """Repair links the source doc mangled.
+
+    Editing in Google Docs sometimes swallows the text after a URL into the href
+    ("…/edit%20ملاحظات"), which 404s even though the document is fine. Rebuild any
+    Google Docs link from its id, and trim stray whitespace elsewhere."""
+    if not url or url.startswith("#"):
+        return url
+    gid = gdoc_id(url)
+    if gid:
+        return f"https://docs.google.com/document/d/{gid}/edit"
+    return url.strip()
+
 # -------------------------------------------------------------------- facets
 MODELS = [
     ("mazda3", r"مازدا\s*٣|مازدا\s*3|\bم\s*3\b|\bم٣\b|mazda\s*3|\bm3\b"),
