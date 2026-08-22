@@ -264,6 +264,12 @@ footer .credit a{font-weight:600}
 }
 @media(max-width:700px){
   .only-mobile{display:inline-block}
+  /* title on its own line, then one row of controls, then the tabs */
+  .brand{gap:8px}
+  .brand h1{flex-basis:100%}
+  .brand .spacer{display:none}
+  .brand .tabs{flex-basis:100%}
+  .ghost{font-size:11.5px;padding:3px 8px}
   .cols{grid-template-columns:1fr}
   .bar-in{padding:10px 14px;gap:9px}
   main{padding:16px 14px 28px}
