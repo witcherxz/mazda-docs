@@ -55,6 +55,17 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .ghost:hover{color:var(--accent);border-color:var(--accent)}
 .only-mobile{display:none}
 .filters.hidden{display:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:9px 11px;
+  border:1px dashed var(--rule-strong);border-radius:4px;background:var(--surface-2);
+  font-size:12.5px;color:var(--ink-3)}
+.legend.hidden{display:none}
+.lg{display:inline-flex;align-items:center;gap:6px}
+.lgt{color:var(--ink-2)}
+.lgn{color:var(--ink-3);font-size:11px}
+.sw{width:9px;height:9px;border-radius:50%;background:var(--web);flex:none}
+.sw.telegram{background:var(--tg)} .sw.youtube{background:var(--yt)}
+.sw.google-doc{background:var(--gd)} .sw.archive,.sw.internal-anchor{background:var(--arch)}
+.lgrule{width:1px;align-self:stretch;background:var(--rule-strong);margin:0 2px}
 .tabs{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:2px;
   overflow-x:auto;max-width:100%}
 .tabs button{padding:6px 14px;border-radius:3px;font-size:14px;font-weight:500;color:var(--ink-2);white-space:nowrap}
@@ -144,13 +155,14 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .topic .share:hover{color:var(--accent)}
 @media(hover:none){.topic .share{opacity:.6}}
 .topic .tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.tag{display:inline-flex;align-items:center;height:19px;padding:0 8px;font-size:11px;line-height:1;
+.tag{display:inline-flex;align-items:center;min-height:19px;padding:2px 8px;font-size:11px;line-height:1.3;
   border:1px solid transparent;border-radius:99px;background:var(--surface-2);color:var(--ink-3);
   font-family:"IBM Plex Mono",monospace;white-space:nowrap;vertical-align:middle}
 .tag.model{background:var(--steel-bg);color:var(--steel)}
 .tag.doc{background:none;border-color:var(--rule);color:var(--ink-3);cursor:pointer;
-  font-family:"IBM Plex Sans Arabic",sans-serif;max-width:22ch;overflow:hidden;text-overflow:ellipsis;
-  display:inline-block;line-height:17px}
+  font-family:"IBM Plex Sans Arabic",sans-serif;max-width:22ch;
+  display:inline-flex;align-items:center;line-height:1}
+.tag.doc .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 .tag.doc:hover{border-color:var(--accent);color:var(--accent)}
 .srcs{display:flex;flex-wrap:wrap;gap:5px}
 .src{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:3px 9px;border-radius:3px;
@@ -254,6 +266,7 @@ footer .credit a{font-weight:600}
     <span class="sub" id="sub"></span>
     <span class="spacer"></span>
     <button class="ghost only-mobile" id="togglefilters">الفلاتر</button>
+    <button class="ghost" id="togglelegend" aria-expanded="false">◍ دليل الألوان</button>
     <button class="ghost" id="theme" title="تبديل السمة">☾ داكن</button>
     <a class="ghost" id="srclink" href="#" target="_blank" rel="noopener">المستند الأصلي ↗</a>
     <div class="tabs" role="tablist" id="tabs"></div>
@@ -265,6 +278,7 @@ footer .credit a{font-weight:600}
     <span class="hint mono">/</span>
   </label>
   <div class="filters" id="filters"></div>
+  <div class="legend hidden" id="legend"></div>
 </div></header>
 
 <main>
@@ -565,7 +579,7 @@ function renderRuns(o, ts, tag){
 /* ---------- state ---------- */
 const state = {tab:"topics", q:"", models:new Set(), engines:new Set(), kinds:new Set(),
   docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null,
-  showFilters: window.matchMedia("(min-width: 701px)").matches};
+  showFilters: window.matchMedia("(min-width: 701px)").matches, showLegend: false};
 
 function terms(){
   const q = norm(state.q);
@@ -663,6 +677,40 @@ function docsFiltered(){
     if(!ts.length) return true;
     const hay = norm(d.title + " " + (d.sections||[]).map(s => s.title).join(" "));
     return !!fzAll(hay, ts);
+  });
+}
+
+/* What the colours mean. Shown on a first visit, then remembered as dismissed. */
+const LEGEND_KINDS = [["telegram","تيليقرام — رسالة في قروب"], ["youtube","يوتيوب — مقطع"],
+  ["google-doc","مستند مرتبط"], ["web","موقع أو منتدى"], ["nhtsa","استدعاءات ونشرات"],
+  ["archive","نسخة من الأرشيف"], ["internal-anchor","داخل هذا الدليل"]];
+function buildLegend(){
+  const box = $("#legend");
+  box.textContent = "";
+  box.classList.toggle("hidden", !state.showLegend);
+  $("#togglelegend").setAttribute("aria-expanded", state.showLegend ? "true" : "false");
+  if(!state.showLegend) return;
+  const counts = DATA.stats.kinds || {};
+  LEGEND_KINDS.forEach(([kind, label]) => {
+    if(!counts[kind] && kind !== "internal-anchor") return;
+    const item = el("span","lg");
+    item.append(el("span","sw " + kind));          /* the same dot the chips use */
+    item.append(el("span","lgt", label));
+    if(counts[kind]) item.append(el("span","lgn mono", counts[kind].toLocaleString("en-US")));
+    box.append(item);
+  });
+  const rule = el("span","lgrule");
+  box.append(rule);
+  const forms = [
+    [el("span","inl telegram","نص تحته خط"), "عبارة قابلة للنقر تفتح مصدرها"],
+    [el("span","mk","2"), "أرقام = مصادر إضافية لنفس البند"],
+    [el("span","mk dead","3"), "رابط معطّل — يفتح نسخة الأرشيف إن وُجدت"],
+    [el("span","inl nav","داخلي"), "ينقلك إلى شرح داخل الصفحة"],
+  ];
+  forms.forEach(([sample, label]) => {
+    const item = el("span","lg");
+    item.append(sample, el("span","lgt", label));
+    box.append(item);
   });
 }
 
@@ -842,7 +890,8 @@ function viewTopics(counts){
     (t.f.years||[]).slice(0,2).forEach(([a,b]) =>
       tags.append(el("span","tag ltr", a===b?`${a}`:`${a}–${b}`)));
     if(t.doc && t.doc !== "hub"){
-      const d = el("button","tag doc", DOCTITLE[t.doc] || "مستند فرعي");
+      const d = el("button","tag doc");
+      d.append(el("span","lbl", DOCTITLE[t.doc] || "مستند فرعي"));
       d.title = "عرض مواضيع هذا المستند";
       d.onclick = () => { state.docs.clear(); state.docs.add(t.doc); state.cursor = 0; render(); };
       tags.append(d);
@@ -1042,6 +1091,7 @@ var render = function(){
   const counts = tabCounts();
   buildTabs(counts);
   buildFilters();
+  buildLegend();
   const v = $("#view"); v.textContent = "";
   v.append(state.tab === "topics" ? viewTopics(counts)
          : state.tab === "sched"  ? viewSched(counts)
@@ -1141,6 +1191,19 @@ function init(d){
     if(e.key === "Escape" && document.activeElement === $("#q")){
       $("#q").value = ""; state.q = ""; render(); }
   });
+  let legendSeen = false;
+  try { legendSeen = localStorage.getItem("mazda-legend") === "seen"; } catch(e) {}
+  state.showLegend = !legendSeen;          /* first visit gets the key, then it stays put */
+  $("#togglelegend").onclick = () => {
+    state.showLegend = !state.showLegend;
+    try { localStorage.setItem("mazda-legend", "seen"); } catch(e) {}
+    render();
+  };
+  const paintLegendButton = () => {
+    $("#togglelegend").textContent = state.showLegend ? "◍ إخفاء الألوان" : "◍ دليل الألوان";
+  };
+  const _r = render;
+  render = () => { _r(); paintLegendButton(); };
   $("#togglefilters").onclick = () => {
     state.showFilters = !state.showFilters;
     const active = state.models.size + state.engines.size + state.kinds.size +
