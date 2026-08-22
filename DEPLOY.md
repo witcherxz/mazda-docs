@@ -34,9 +34,28 @@ turn the satellite crawl off or change how many links get checked.
 
 ### Custom domain
 
-Add `dist/CNAME` containing your domain (write it in `tools/render.py` next to the manifest so
-it survives rebuilds), point a CNAME record at `<you>.github.io`, then set the domain under
-Settings → Pages. Enforce HTTPS once the certificate is issued.
+The site is served from **mazda-community.org**. `tools/render.py` writes `dist/CNAME` on every
+build (with the canonical URL, robots.txt and sitemap), so the domain survives each redeploy —
+a Pages artifact without a CNAME file drops the custom domain.
+
+DNS at the registrar, for the apex:
+
+| Type | Name | Value |
+|---|---|---|
+| A | @ | 185.199.108.153 |
+| A | @ | 185.199.109.153 |
+| A | @ | 185.199.110.153 |
+| A | @ | 185.199.111.153 |
+| AAAA | @ | 2606:50c0:8000::153 |
+| AAAA | @ | 2606:50c0:8001::153 |
+| AAAA | @ | 2606:50c0:8002::153 |
+| AAAA | @ | 2606:50c0:8003::153 |
+| CNAME | www | witcherxz.github.io. |
+
+Then Settings → Pages → Custom domain → `mazda-community.org` → Save, and tick **Enforce HTTPS**
+once the certificate is issued (a few minutes after DNS resolves).
+
+To change the domain later, edit `DOMAIN` in `tools/render.py` — everything else follows.
 
 ## Alternatives
 

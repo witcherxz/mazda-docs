@@ -37,6 +37,9 @@ self.addEventListener("fetch", e => {
 });
 """
 
+DOMAIN = "mazda-community.org"          # the CNAME file must ship inside the Pages artifact
+SITE_URL = f"https://{DOMAIN}/"
+
 TEMPLATE = os.path.join(ROOT, "tools", "template.html")
 SITE = os.path.join(ROOT, "site", "index.html")
 DIST = os.path.join(ROOT, "dist")
@@ -100,6 +103,8 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
             '<meta property="og:description" content="بحث في دليل صيانة مازدا: '
             'المواضيع ومصادرها، جدول الصيانة، والشروحات — مولّد آلياً من مستند المجتمع">'
             '<meta name="twitter:card" content="summary">'
+            f'<meta property="og:url" content="{SITE_URL}">'
+            f'<link rel="canonical" href="{SITE_URL}">'
             '<link rel="manifest" href="manifest.webmanifest">'
             '<link rel="icon" href="data:image/svg+xml,'
             '%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E'
@@ -107,6 +112,14 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
             '</head><body>' + shell + "</body></html>")
     open(os.path.join(dist, "index.html"), "w", encoding="utf-8").write(page)
     open(os.path.join(dist, "data.json"), "w", encoding="utf-8").write(payload)
+    open(os.path.join(dist, "CNAME"), "w", encoding="utf-8").write(DOMAIN + "\n")
+    open(os.path.join(dist, "robots.txt"), "w", encoding="utf-8").write(
+        f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}sitemap.xml\n")
+    open(os.path.join(dist, "sitemap.xml"), "w", encoding="utf-8").write(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f'  <url><loc>{SITE_URL}</loc><changefreq>daily</changefreq></url>\n'
+        '</urlset>\n')
     open(os.path.join(dist, "sw.js"), "w", encoding="utf-8").write(SERVICE_WORKER)
     open(os.path.join(dist, "manifest.webmanifest"), "w", encoding="utf-8").write(
         json.dumps({"name": "دليل مازدا المنظم", "short_name": "دليل مازدا",

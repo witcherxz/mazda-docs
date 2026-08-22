@@ -97,8 +97,8 @@ community reorders the index, and renames surface as changes instead of duplicat
 
 ## Deploying
 
-See [DEPLOY.md](DEPLOY.md). Short version: push to GitHub, set Pages to "GitHub Actions",
-and `.github/workflows/sync.yml` rebuilds and republishes daily.
+Live at **[mazda-community.org](https://mazda-community.org/)**, rebuilt and republished daily
+by `.github/workflows/sync.yml`. See [DEPLOY.md](DEPLOY.md) for the DNS records and the setup.
 
 ## Background
 
