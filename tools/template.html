@@ -680,7 +680,7 @@ function docsFiltered(){
   });
 }
 
-/* What the colours mean. Shown on a first visit, then remembered as dismissed. */
+/* What the colours mean — opened from the ◍ button in the header. */
 const LEGEND_KINDS = [["telegram","تيليقرام — رسالة في قروب"], ["youtube","يوتيوب — مقطع"],
   ["google-doc","مستند مرتبط"], ["web","موقع أو منتدى"], ["nhtsa","استدعاءات ونشرات"],
   ["archive","نسخة من الأرشيف"], ["internal-anchor","داخل هذا الدليل"]];
@@ -1191,12 +1191,8 @@ function init(d){
     if(e.key === "Escape" && document.activeElement === $("#q")){
       $("#q").value = ""; state.q = ""; render(); }
   });
-  let legendSeen = false;
-  try { legendSeen = localStorage.getItem("mazda-legend") === "seen"; } catch(e) {}
-  state.showLegend = !legendSeen;          /* first visit gets the key, then it stays put */
-  $("#togglelegend").onclick = () => {
+  $("#togglelegend").onclick = () => {    /* closed until asked for */
     state.showLegend = !state.showLegend;
-    try { localStorage.setItem("mazda-legend", "seen"); } catch(e) {}
     render();
   };
   const paintLegendButton = () => {

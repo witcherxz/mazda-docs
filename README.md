@@ -52,8 +52,8 @@ everything. Every section highlights its hits: character-level inside short name
 inside paragraphs, where scattered marks would just be noise.
 
 The page is dark by default; the ☾/☀ button switches it and the choice is remembered.
-A colour legend (◍) explains what each source colour means — open on a first visit, then
-remembered as dismissed.
+A colour legend (◍ in the header) explains what each source colour means; it stays closed
+until asked for.
 
 `/` focuses · `↑` `↓` walk the results · `Enter` opens the top source · `Esc` clears.
 State lives in the URL (`#tab=docs&q=…`), so any view is shareable.
