@@ -47,8 +47,10 @@ KIND_RULES = [("t.me", "telegram"), ("youtu", "youtube"), ("docs.google.com", "g
               ("instagram", "instagram"), ("twitter", "twitter"), ("x.com", "twitter")]
 
 def classify(url):
-    if not url or url.startswith("#") or "kix." in url:
+    if not url or url.startswith("#"):
         return "internal-anchor"
+    if "#bookmark=" in url or "#heading=" in url:
+        return "source-doc"          # a specific spot inside the community's own document
     for key, name in KIND_RULES:
         if key in url:
             return name

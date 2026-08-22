@@ -39,6 +39,12 @@ class Normalization(unittest.TestCase):
         for url, kind in cases.items():
             self.assertEqual(common.classify(url), kind, url)
 
+    def test_bookmark_links_are_their_own_kind(self):
+        self.assertEqual(common.classify(
+            "https://docs.google.com/document/d/X/edit#bookmark=kix.a"), "source-doc")
+        self.assertEqual(common.classify(
+            "https://docs.google.com/document/d/X/edit"), "google-doc")
+
     def test_facets_read_model_year_engine(self):
         f = common.facets("مازدا 6 2015-2019 محرك 2.5 توربو")
         self.assertIn("mazda6", f["models"])
@@ -136,6 +142,13 @@ class Satellites(unittest.TestCase):
 
     def test_google_redirect_is_unwrapped(self):
         self.assertEqual(self.by_name["ارقام القطع"]["sources"][0]["url"], "https://t.me/x/1")
+
+    def test_in_document_jump_points_back_at_its_own_document(self):
+        doc = satellites.parse(
+            '<html><head><title>T</title></head><body><p>'
+            '<a href="#kix.zzz">تقييم صنّاع قطع الغيار</a></p></body></html>', "DOCID")
+        url = doc["topics"][0]["sources"][0]["url"]
+        self.assertEqual(url, "https://docs.google.com/document/d/DOCID/edit#bookmark=kix.zzz")
 
 
 class Store(unittest.TestCase):
@@ -240,6 +253,13 @@ class RealDocument(unittest.TestCase):
     def test_articles_and_anchor_resolution(self):
         self.assertGreater(len(self.parsed["articles"]), 10)
         self.assertGreater(len(self.parsed["anchors"]), 20)
+
+    def test_no_source_is_left_as_a_bare_anchor(self):
+        """A bare "#anchor" href just reloads the page, so every one must either resolve
+        to a section here or point at that bookmark in the community's document."""
+        stray = [s["url"] for t in self.parsed["topics"] for s in t["sources"]
+                 if s["url"].startswith("#") and not s.get("nav")]
+        self.assertEqual(stray, [])
 
     def test_no_marker_leaked_into_a_topic_name(self):
         bad = [t["name"] for t in self.parsed["topics"] if not common.real_name(t["name"])]

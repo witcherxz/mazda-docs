@@ -72,6 +72,7 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .src.nhtsa,.inl.nhtsa,.mk.nhtsa,.sw.nhtsa{--k:var(--nh)}
 .src.archive,.inl.archive,.mk.archive,.sw.archive{--k:var(--arch)}
 .src.internal-anchor,.inl.internal-anchor,.mk.internal-anchor,.sw.internal-anchor{--k:var(--int)}
+.src.source-doc,.inl.source-doc,.mk.source-doc,.sw.source-doc{--k:var(--gd)}
 .src.image,.inl.image,.mk.image,.sw.image{--k:var(--oth)}
 .src.maps,.inl.maps,.mk.maps,.sw.maps{--k:var(--oth)}
 .src.instagram,.inl.instagram,.mk.instagram,.sw.instagram{--k:var(--oth)}
@@ -323,6 +324,7 @@ function kindOf(url){
   return "web";
 }
 const KIND_AR = {telegram:"تيليقرام", youtube:"يوتيوب", "google-doc":"مستند", web:"موقع",
+  "source-doc":"موضع في المستند",
   nhtsa:"استدعاءات", archive:"أرشيف", shortlink:"رابط مختصر", image:"صورة", maps:"خريطة",
   instagram:"انستقرام", twitter:"تويتر", gdrive:"درايف", "internal-anchor":"داخلي"};
 const MODEL_AR = {mazda2:"مازدا 2", mazda3:"مازدا 3", mazda6:"مازدا 6", cx3:"CX-3", cx5:"CX-5",
@@ -693,7 +695,8 @@ function docsFiltered(){
 /* What the colours mean — opened from the ◍ button in the header. */
 const LEGEND_KINDS = [["telegram","تيليقرام — رسالة في قروب"], ["youtube","يوتيوب — مقطع"],
   ["google-doc","مستند مرتبط"], ["web","موقع أو منتدى"], ["nhtsa","استدعاءات ونشرات"],
-  ["archive","نسخة من الأرشيف"], ["internal-anchor","داخل هذا الدليل"]];
+  ["archive","نسخة من الأرشيف"], ["internal-anchor","داخل هذا الدليل"],
+  ["source-doc","موضع محدّد داخل المستند الأصلي"]];
 const LEGEND_OTHER = ["image","maps","instagram","twitter","shortlink","gdrive"];
 function buildLegend(){
   const box = $("#legend");

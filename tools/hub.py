@@ -2,7 +2,8 @@
 import io, re, zipfile
 import xml.etree.ElementTree as ET
 
-from common import AR_DIGITS, classify, facets, norm_ar, normalize_url, real_name, slug
+from common import (AR_DIGITS, HUB, classify, facets, norm_ar, normalize_url,
+                    real_name, slug)
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -266,12 +267,19 @@ def parse(raw):
     articles, anchors = extract_articles(body, rels)
 
     def resolve(links, key="url"):
+        """An in-document jump either lands on a section we extracted, or — for the many
+        that point at places outside those sections — on that exact bookmark in the
+        community's own document. Left as a bare "#anchor" it would just reload the page."""
         for l in links:
             url = l.get(key, "")
-            if url.startswith("#"):
-                hit = anchors.get(url[1:])
-                if hit:
-                    l["nav"] = hit
+            if not url.startswith("#"):
+                continue
+            hit = anchors.get(url[1:])
+            if hit:
+                l["nav"] = hit
+            else:
+                l[key] = f"https://docs.google.com/document/d/{HUB}/edit#bookmark={url[1:]}"
+                l["kind"] = "source-doc"
     for t in topics:
         resolve(t["sources"])
     for iv in schedule:
@@ -283,6 +291,7 @@ def parse(raw):
 
     all_links = [{"text": t[1].strip(), "url": t[2], "kind": classify(t[2])}
                  for p in body.iter(W + "p") for t in tokens(p, rels) if t[0] == "L"]
+    resolve(all_links)          # so link counts describe where a reader actually lands
     text = "".join(rtext(p) for p in body.iter(W + "p"))
     return {"topics": topics, "schedule": schedule, "articles": articles,
             "anchors": anchors, "links": all_links, "text": text}

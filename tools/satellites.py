@@ -174,6 +174,12 @@ def parse(html_text, doc_id):
     p = DocParser()
     p.feed(html_text)
     p._close()
+    for block in p.blocks:                     # in-document jumps point back at their doc
+        for link in block["links"]:
+            if link["url"].startswith("#"):
+                link["url"] = (f"https://docs.google.com/document/d/{doc_id}"
+                               f"/edit#bookmark={link['url'][1:]}")
+                link["kind"] = "source-doc"
     title = re.sub(r"\s+", " ", p.title).strip() or doc_id[:8]
     sections = [{"level": b["h"], "title": b["t"][:120]} for b in p.blocks if b["h"]]
     links = [l for b in p.blocks for l in b["links"]]
