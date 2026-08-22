@@ -579,7 +579,7 @@ function renderRuns(o, ts, tag){
 /* ---------- state ---------- */
 const state = {tab:"topics", q:"", models:new Set(), engines:new Set(), kinds:new Set(),
   docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null,
-  showFilters: window.matchMedia("(min-width: 701px)").matches, showLegend: false};
+  showFilters: window.matchMedia("(min-width: 701px)").matches, showLegend: false, yearRaw:""};
 
 function terms(){
   const q = norm(state.q);
@@ -769,8 +769,42 @@ function elsewhere(counts){
   }
   return box;
 }
+/* The filter bar is rebuilt on every render; a fresh <input> each time would lose focus
+   after the first digit, so the year field is created once and re-attached. */
+let _year = null, _yearTimer = null;
+function yearInput(){
+  /* state.yearRaw is what the reader typed; state.year is the filter, set once four
+     digits are in — re-attaching must not overwrite a half-typed year */
+  if(_year){
+    if(document.activeElement !== _year) _year.value = state.yearRaw;
+    return _year;
+  }
+  const yi = el("input");
+  yi.id = "yearinput";
+  yi.type = "text";
+  yi.inputMode = "numeric";
+  yi.maxLength = 4;
+  yi.placeholder = "2019";
+  yi.autocomplete = "off";
+  yi.setAttribute("aria-label", "سنة الموديل");
+  yi.value = state.yearRaw;
+  yi.oninput = () => {
+    const digits = yi.value.replace(/\D/g, "").slice(0, 4);
+    if(digits !== yi.value) yi.value = digits;
+    state.yearRaw = digits;
+    state.year = digits.length === 4 ? digits : "";   /* filter once it is a full year */
+    state.cursor = 0;
+    clearTimeout(_yearTimer);
+    _yearTimer = setTimeout(render, 200);
+  };
+  _year = yi;
+  return yi;
+}
+
 function buildFilters(){
-  const box = $("#filters"); box.textContent = "";
+  const box = $("#filters");
+  const keepFocus = document.activeElement && document.activeElement.id === "yearinput";
+  box.textContent = "";
   box.classList.toggle("hidden", !state.showFilters);
   if(state.tab === "sched" || state.tab === "changes") return;
 
@@ -789,10 +823,7 @@ function buildFilters(){
       g3.append(chip(KIND_AR[k]||k, state.kinds.has(k), () => toggle(state.kinds, k))));
     const g4 = el("div","yearbox");
     g4.append(el("span",null,"سنة الموديل:"));
-    const yi = el("input"); yi.type = "number"; yi.placeholder = "2019";
-    yi.min = 1970; yi.max = 2030; yi.value = state.year;
-    yi.oninput = () => { state.year = yi.value; render(); };
-    g4.append(yi);
+    g4.append(yearInput());
     box.append(g1, g2, g3, g4);
     if(state.tab === "topics"){
       const sorts = state.q ? [["rel","الأنسب"],["abc","أبجدي"],["n","الأكثر مصادر"]]
@@ -808,12 +839,18 @@ function buildFilters(){
       g6.append(chip((DOCTITLE[d]||d).slice(0,26) + " ✕", true, () => state.docs.delete(d))));
     box.append(g6);
   }
+  if(keepFocus && _year){
+    _year.focus();
+    const end = _year.value.length;
+    try { _year.setSelectionRange(end, end); } catch(e) {}
+  }
   const any = state.models.size||state.engines.size||state.kinds.size||state.docs.size||
               state.year||state.letter||state.q;
   if(any){
     const c = el("button","clear","مسح الفلاتر ✕");
     c.onclick = () => { state.models.clear(); state.engines.clear(); state.kinds.clear();
-      state.docs.clear(); state.year=""; state.letter=""; state.q=""; $("#q").value="";
+      state.docs.clear(); state.year=""; state.yearRaw=""; state.letter=""; state.q="";
+      $("#q").value=""; if(_year) _year.value = "";
       state.cursor = 0; render(); };
     box.append(c);
   }
@@ -1112,6 +1149,7 @@ function readHash(){
   if(h.get("art")){ state.artId = h.get("art"); if(!h.get("tab")) state.tab = "arts"; }
   if(h.get("doc")) state.docs.add(h.get("doc"));
   if(h.get("letter")) state.letter = h.get("letter");
+  if(h.get("year")){ state.yearRaw = h.get("year"); state.year = h.get("year"); }
 }
 function writeHash(){
   const p = new URLSearchParams();
@@ -1120,6 +1158,7 @@ function writeHash(){
   if(state.tab === "arts" && state.artId) p.set("art", state.artId);
   if(state.docs.size) p.set("doc", [...state.docs][0]);
   if(state.letter) p.set("letter", state.letter);
+  if(state.year) p.set("year", state.year);
   const h = p.toString();
   try {   /* sandboxed embeds can refuse history writes; the UI must not care */
     history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
