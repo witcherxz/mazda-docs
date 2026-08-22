@@ -254,6 +254,17 @@ class RealDocument(unittest.TestCase):
         self.assertGreater(len(self.parsed["articles"]), 10)
         self.assertGreater(len(self.parsed["anchors"]), 20)
 
+    def test_in_document_jumps_land_inside_the_site(self):
+        """Anchors resolve to a section or a topic here; only genuinely unknown
+        bookmarks fall back to the community's document."""
+        navs = [s["nav"] for t in self.parsed["topics"] for s in t["sources"] if s.get("nav")]
+        self.assertGreater(len(navs), 100)
+        self.assertTrue(any("a" in n for n in navs), "expected section targets")
+        self.assertTrue(any("topic" in n for n in navs), "expected topic targets")
+        out = sum(1 for t in self.parsed["topics"] for s in t["sources"]
+                  if "bookmark=" in s["url"])
+        self.assertLess(out, 60, "too many jumps still leaving the site")
+
     def test_no_source_is_left_as_a_bare_anchor(self):
         """A bare "#anchor" href just reloads the page, so every one must either resolve
         to a section here or point at that bookmark in the community's document."""

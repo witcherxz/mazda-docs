@@ -53,7 +53,9 @@ def cell_blocks(tc, rels):
 
 
 # --------------------------------------------------------------- index table
-def extract_topics(tbl, rels):
+def extract_topics(tbl, rels, anchors=None):
+    """anchors, when given, collects bookmark -> topic so in-document jumps can land
+    on the topic itself rather than bouncing out to the source document."""
     topics, letter = [], None
     for tr in tbl.findall(W + "tr"):
         for tc in tr.findall(W + "tc"):
@@ -63,6 +65,12 @@ def extract_topics(tbl, rels):
                 letter = plain                      # section letter: أ ب ت … / A-Z
                 continue
             cur, ctx, last = None, "", None
+            if anchors is not None:
+                for p in tc.findall(W + "p"):
+                    for b in p.iter(W + "bookmarkStart"):
+                        name = b.get(W + "name")
+                        if name:
+                            anchors.setdefault(name, {"cell": id(tc)})
             for kind, text, url in flat:
                 if kind == "T":
                     ctx = text
@@ -79,6 +87,10 @@ def extract_topics(tbl, rels):
                            "note": ctx.strip(" ,،()>*")[:80], "sources": []}
                     topics.append(cur)
                     last = cur
+                    if anchors is not None:      # first topic in the cell owns its bookmarks
+                        for name, target in anchors.items():
+                            if target.get("cell") == id(tc):
+                                anchors[name] = {"topic": cur["id"]}
                 cur["sources"].append({"label": text.strip() or "↗", "url": url,
                                        "kind": classify(url)})
 
@@ -210,8 +222,21 @@ def extract_articles(body, rels):
             return
         cur["blocks"].append({"t": text, "row": is_row, "runs": runs})
 
+    def ensure_article():
+        nonlocal cur
+        if cur is None:
+            cur = {"id": "intro", "title": "مقدمة الدليل", "blocks": []}
+            arts.append(cur)
+        return cur
+
     seen_index = False
     for ch in body:
+        if ch.tag == W + "bookmarkStart" and seen_index:
+            # Word writes many bookmarks as siblings of the paragraphs, not inside them
+            name = ch.get(W + "name")
+            if name and name not in anchors:
+                anchors[name] = {"a": ensure_article()["id"], "b": len(cur["blocks"])}
+            continue
         if ch.tag == W + "tbl":
             if not seen_index:
                 seen_index = True                  # the index table itself
@@ -255,16 +280,20 @@ def extract_articles(body, rels):
         a["chars"] = sum(len(b["t"]) for b in a["blocks"])
         out.append(a)
     live = {a["id"] for a in out}
-    return out, {k: v for k, v in anchors.items() if v["a"] in live}
+    return out, {k: v for k, v in anchors.items() if v.get("a") in live}
 
 
 def parse(raw):
     """Full hub parse -> dict of topics, schedule, articles, links, text hash input."""
     body, rels = open_docx(raw)
     tbls = body.findall(W + "tbl")
-    topics = extract_topics(tbls[0], rels)
+    cell_anchors = {}
+    topics = extract_topics(tbls[0], rels, cell_anchors)
     schedule = extract_schedule(tbls[1], rels)
     articles, anchors = extract_articles(body, rels)
+    for name, target in cell_anchors.items():     # sections win; index topics fill the rest
+        if "topic" in target:
+            anchors.setdefault(name, target)
 
     def resolve(links, key="url"):
         """An in-document jump either lands on a section we extracted, or — for the many
@@ -275,7 +304,7 @@ def parse(raw):
             if not url.startswith("#"):
                 continue
             hit = anchors.get(url[1:])
-            if hit:
+            if hit and ("a" in hit or "topic" in hit):
                 l["nav"] = hit
             else:
                 l[key] = f"https://docs.google.com/document/d/{HUB}/edit#bookmark={url[1:]}"

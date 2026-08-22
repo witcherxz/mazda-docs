@@ -1,0 +1,3 @@
+# Append-only log: local runs and the sync bot both add lines, so let git keep both
+# instead of raising a conflict on every push.
+data/history.jsonl merge=union

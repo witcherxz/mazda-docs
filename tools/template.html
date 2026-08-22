@@ -480,11 +480,7 @@ function linkNode(r, ts, num){
   a.href = archive || r.u; a.target = "_blank"; a.rel = "noopener";
   a.title = dead ? (archive ? "الرابط الأصلي معطّل — يفتح نسخة من الأرشيف" : "الرابط معطّل")
                  : `${KIND_AR[kind]||kind} — ${r.u}`;
-  if(r.nav){
-    a.href = "#art=" + r.nav.a; a.target = "_self";
-    a.onclick = ev => { ev.preventDefault(); state.tab = "arts"; state.artId = r.nav.a;
-      state.artBlock = r.nav.b; state.q = ""; $("#q").value = ""; render(); };
-  }
+  if(r.nav) applyNav(a, r.nav);
   if(num){ a.textContent = String(num); a.title = `مصدر ${num} — ${r.u}`; }
   else a.append(highlightWords(r.t, ts));
   return a;
@@ -591,7 +587,8 @@ function renderRuns(o, ts, tag){
 /* ---------- state ---------- */
 const state = {tab:"topics", q:"", models:new Set(), engines:new Set(), kinds:new Set(),
   docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null,
-  showFilters: window.matchMedia("(min-width: 701px)").matches, showLegend: false, yearRaw:""};
+  showFilters: window.matchMedia("(min-width: 701px)").matches, showLegend: false, yearRaw:"",
+  focusTopic: null};
 
 function terms(){
   const q = norm(state.q);
@@ -611,7 +608,7 @@ function matchFacets(f){
 /* every render asks for the same filtered list twice (tab counts, then the view) */
 let _memoKey = null, _memoVal = null;
 function filterKey(){
-  return [state.q, state.letter, state.year, [...state.models].sort(),
+  return [state.focusTopic, state.q, state.letter, state.year, [...state.models].sort(),
           [...state.engines].sort(), [...state.kinds].sort(), [...state.docs].sort()].join("|");
 }
 function topicsFiltered(){
@@ -623,6 +620,10 @@ function topicsFiltered(){
 }
 function computeTopics(){
   const ts = terms(), out = [];
+  if(state.focusTopic){                       /* arrived from an in-document jump */
+    const one = DATA.topics.find(t => t.id === state.focusTopic);
+    if(one) return [one];
+  }
   for(const t of DATA.topics){
     if(state.letter && t.letter !== state.letter) continue;
     if(state.docs.size && !state.docs.has(t.doc)) continue;
@@ -853,6 +854,14 @@ function buildFilters(){
       box.append(g5);
     }
   }
+  if(state.focusTopic){
+    const one = DATA.topics.find(t => t.id === state.focusTopic);
+    const g0 = el("div","fgroup");
+    g0.append(el("span","flabel","موضوع محدد:"));
+    g0.append(chip((one ? one.name.slice(0, 30) : state.focusTopic) + " ✕", true,
+                   () => state.focusTopic = null));
+    box.append(g0);
+  }
   if(state.docs.size){
     const g6 = el("div","fgroup"); g6.append(el("span","flabel","المستند:"));
     [...state.docs].forEach(d =>
@@ -865,11 +874,12 @@ function buildFilters(){
     try { _year.setSelectionRange(end, end); } catch(e) {}
   }
   const any = state.models.size||state.engines.size||state.kinds.size||state.docs.size||
-              state.year||state.letter||state.q;
+              state.year||state.letter||state.q||state.focusTopic;
   if(any){
     const c = el("button","clear","مسح الفلاتر ✕");
     c.onclick = () => { state.models.clear(); state.engines.clear(); state.kinds.clear();
-      state.docs.clear(); state.year=""; state.yearRaw=""; state.letter=""; state.q="";
+      state.docs.clear(); state.focusTopic=null;
+      state.year=""; state.yearRaw=""; state.letter=""; state.q="";
       $("#q").value=""; if(_year) _year.value = "";
       state.cursor = 0; render(); };
     box.append(c);
@@ -877,6 +887,22 @@ function buildFilters(){
 }
 
 /* ---------- views ---------- */
+/* an in-document jump that lands somewhere this site actually renders */
+function goTo(nav){
+  state.q = ""; $("#q").value = "";
+  if(nav.topic){
+    state.tab = "topics"; state.focusTopic = nav.topic; state.cursor = 0;
+  } else {
+    state.tab = "arts"; state.artId = nav.a; state.artBlock = nav.b; state.focusTopic = null;
+  }
+  render();
+}
+function applyNav(a, nav){
+  a.href = nav.topic ? "#topic=" + nav.topic : "#art=" + nav.a;
+  a.target = "_self";
+  a.onclick = ev => { ev.preventDefault(); goTo(nav); };
+}
+
 function srcLink(s, i, topicName){
   const kind = s.kind || kindOf(s.url);
   const bad = (DATA.health || {})[s.url];
@@ -887,11 +913,7 @@ function srcLink(s, i, topicName){
   a.title = dead
     ? (archive ? "الرابط الأصلي معطّل — يفتح نسخة من الأرشيف" : "الرابط معطّل")
     : `${KIND_AR[kind]||kind} — ${s.url}`;
-  if(s.nav){
-    a.href = "#art=" + s.nav.a; a.target = "_self";
-    a.onclick = ev => { ev.preventDefault(); state.tab = "arts"; state.artId = s.nav.a;
-      state.artBlock = s.nav.b; state.q = ""; $("#q").value = ""; render(); };
-  }
+  if(s.nav) applyNav(a, s.nav);
   a.append(el("span","dot"));
   let label = (s.label && s.label.length > 1 && !/^[\s>*]+$/.test(s.label)) ? s.label : String(i+1);
   if(topicName && norm(label) === norm(topicName)) label = KIND_AR[kind] || kind;
@@ -922,7 +944,8 @@ function viewTopics(counts){
 
   const grid = el("div","topics");
   list.slice(0, 400).forEach((t, i) => {
-    const c = el("div","topic" + (i === state.cursor && ts.length ? " cur" : ""));
+    const c = el("div","topic" + (i === state.cursor && ts.length ? " cur" : "")
+                          + (t.id === state.focusTopic ? " cur" : ""));
     if(i === state.cursor && ts.length) c.id = "cursor";
     const head = el("div","head");
     head.append(el("span","letter", t.letter||"·"), highlight(t.name, ts),
@@ -1170,6 +1193,7 @@ function readHash(){
   if(h.get("doc")) state.docs.add(h.get("doc"));
   if(h.get("letter")) state.letter = h.get("letter");
   if(h.get("year")){ state.yearRaw = h.get("year"); state.year = h.get("year"); }
+  if(h.get("topic")){ state.focusTopic = h.get("topic"); state.tab = "topics"; }
 }
 function writeHash(){
   const p = new URLSearchParams();
@@ -1179,6 +1203,7 @@ function writeHash(){
   if(state.docs.size) p.set("doc", [...state.docs][0]);
   if(state.letter) p.set("letter", state.letter);
   if(state.year) p.set("year", state.year);
+  if(state.focusTopic) p.set("topic", state.focusTopic);
   const h = p.toString();
   try {   /* sandboxed embeds can refuse history writes; the UI must not care */
     history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
