@@ -92,6 +92,9 @@ in the source document, what parses reliably, what needs human curation, and the
 
 ## Credit
 
-All content belongs to the Saudi Mazda owners' community. This is a generated view of their
-work and carries the document's own disclaimer:
-المعلومات الوارده لأغراض نشر الثقافه فقط.
+All content is written and maintained by the Saudi Mazda owners' community —
+**[قروب مازدا 6 على تيليقرام](https://t.me/mzda6)** and the channels around it. This
+repository only generates a view of their work; every page credits them and links back to
+the original document, and the pipeline never writes to it.
+
+The document's own disclaimer stands: المعلومات الوارده لأغراض نشر الثقافه فقط.

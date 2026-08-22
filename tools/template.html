@@ -195,7 +195,9 @@ main{max-width:1180px;margin:0 auto;padding:20px 20px 80px}
 .empty{color:var(--ink-3);text-align:center;padding:60px 0;font-size:15px}
 .loading{color:var(--ink-3);text-align:center;padding:80px 0;font-size:15px}
 footer{border-top:1px solid var(--rule);margin-top:32px;padding:18px 0;color:var(--ink-3);font-size:12.5px;
-  display:flex;gap:16px;flex-wrap:wrap}
+  display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+footer .credit{flex-basis:100%;padding-top:6px;border-top:1px solid var(--rule);color:var(--ink-2)}
+footer .credit a{font-weight:600}
 @media(max-width:860px){.arts{grid-template-columns:1fr}.artlist{max-height:32vh}}
 @media(max-width:700px){
   .only-mobile{display:inline-block}
@@ -807,6 +809,18 @@ function applyTheme(mode){
 }
 
 /* ---------- boot ---------- */
+/* the people whose work this is */
+function credit(){
+  const wrap = el("span","credit");
+  wrap.append(document.createTextNode("المحتوى من إعداد ومتابعة مجتمع مازدا — "));
+  const tg = el("a", null, "قروب مازدا 6 على تيليقرام");
+  tg.href = "https://t.me/mzda6"; tg.target = "_blank"; tg.rel = "noopener";
+  wrap.append(tg);
+  wrap.append(document.createTextNode(
+    " · هذه الصفحة عرض منظّم آلياً فقط، والمرجع هو المستند الأصلي"));
+  return wrap;
+}
+
 function init(d){
   DATA = d;
   (DATA.docs || []).forEach(x => DOCTITLE[x.id] = x.title);
@@ -821,7 +835,7 @@ function init(d){
     el("span",null,`${s.links} رابط`), el("span",null,`${s.docs} مستند`),
     el("span","mono ltr", (DATA.sha||"").slice(0,12)),
     s.checked ? el("span",null,`فُحص ${s.checked} رابط · ${s.dead} معطّل`) : el("span"),
-    el("span",null,"المحتوى ملك مجتمع مازدا — هذه الصفحة عرض منظّم فقط، والمصدر هو المستند"));
+    credit());
 
   let t = null;
   $("#q").oninput = e => { clearTimeout(t); t = setTimeout(() => {

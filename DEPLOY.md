@@ -92,7 +92,8 @@ differed.
 
 ## Before you publish it publicly
 
-The content belongs to the Saudi Mazda owners' community, not to this repository. The site
+The content belongs to the Saudi Mazda owners' community — [t.me/mzda6](https://t.me/mzda6)
+and the channels around it — not to this repository. The site
 carries their disclaimer and links back to the original document on every screen, and the
 pipeline never writes to their doc. Even so: tell the maintainers before putting a public
 mirror online, credit them by name if they want it, and take it down if they ask. If you add
