@@ -5,7 +5,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
+/* Dark is the default: bare :root carries the dark palette, and light only applies
+   when the reader explicitly asks for it through the theme button. */
 :root{
+  --ground:#131619; --surface:#1A1E22; --surface-2:#22272C; --surface-3:#2B3138;
+  --ink:#E9E7E2; --ink-2:#B4BAC2; --ink-3:#848D98;
+  --rule:#2C3238; --rule-strong:#3E464F;
+  --accent:#E0797E; --accent-ink:#E0797E; --accent-bg:#332123;
+  --steel:#8DBBD2; --steel-bg:#1C2A33;
+  --tg:#8DBBD2; --yt:#E0797E; --gd:#87C298; --web:#C4B08C; --arch:#848D98;
+  --ok:#87C298; --warn:#D3A055;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+}
+:root[data-theme="light"]{
   --ground:#FAF9F6; --surface:#FFFFFF; --surface-2:#F2F0EB; --surface-3:#E9E6DF;
   --ink:#16191D; --ink-2:#4A525E; --ink-3:#7A828E;
   --rule:#DFDBD3; --rule-strong:#C6C0B5;
@@ -14,26 +26,6 @@
   --tg:#2C6079; --yt:#8C1D24; --gd:#3D6F4C; --web:#6B5B45; --arch:#7A828E;
   --ok:#3D6F4C; --warn:#9A6510;
   --shadow:0 1px 2px rgba(20,22,26,.05),0 6px 20px rgba(20,22,26,.05);
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --ground:#131619; --surface:#1A1E22; --surface-2:#22272C; --surface-3:#2B3138;
-  --ink:#E9E7E2; --ink-2:#B4BAC2; --ink-3:#848D98;
-  --rule:#2C3238; --rule-strong:#3E464F;
-  --accent:#E0797E; --accent-ink:#E0797E; --accent-bg:#332123;
-  --steel:#8DBBD2; --steel-bg:#1C2A33;
-  --tg:#8DBBD2; --yt:#E0797E; --gd:#87C298; --web:#C4B08C; --arch:#848D98;
-  --ok:#87C298; --warn:#D3A055;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
-}}
-:root[data-theme="dark"]{
-  --ground:#131619; --surface:#1A1E22; --surface-2:#22272C; --surface-3:#2B3138;
-  --ink:#E9E7E2; --ink-2:#B4BAC2; --ink-3:#848D98;
-  --rule:#2C3238; --rule-strong:#3E464F;
-  --accent:#E0797E; --accent-ink:#E0797E; --accent-bg:#332123;
-  --steel:#8DBBD2; --steel-bg:#1C2A33;
-  --tg:#8DBBD2; --yt:#E0797E; --gd:#87C298; --web:#C4B08C; --arch:#848D98;
-  --ok:#87C298; --warn:#D3A055;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--ground);color:var(--ink);
@@ -107,17 +99,22 @@ main{max-width:1180px;margin:0 auto;padding:20px 20px 80px}
   background:var(--surface-2);color:var(--ink-3);font-size:13px;font-weight:600}
 .topic .name{font-weight:600;font-size:15.5px;line-height:1.45;flex:1}
 .topic .name mark{background:none;color:var(--accent);font-weight:700;border-bottom:1.5px solid var(--accent);border-radius:0}
+mark{background:none;color:var(--accent);font-weight:700}
+mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 2px;font-weight:600}
+.reader h2 mark.w,.doc h3 mark.w,.artlist mark.w{background:none;color:var(--accent);padding:0}
 .topic .n{flex:none;font-size:11.5px;color:var(--ink-3);padding-top:4px}
 .topic .share{flex:none;font-size:12px;color:var(--ink-3);opacity:0;padding:2px 4px;line-height:1}
 .topic:hover .share,.topic .share:focus-visible{opacity:1}
 .topic .share:hover{color:var(--accent)}
 @media(hover:none){.topic .share{opacity:.6}}
-.topic .tags{display:flex;flex-wrap:wrap;gap:4px}
-.tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--surface-2);color:var(--ink-3);
-  font-family:"IBM Plex Mono",monospace}
+.topic .tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:19px;padding:0 8px;font-size:11px;line-height:1;
+  border:1px solid transparent;border-radius:99px;background:var(--surface-2);color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace;white-space:nowrap;vertical-align:middle}
 .tag.model{background:var(--steel-bg);color:var(--steel)}
-.tag.doc{background:none;border:1px solid var(--rule);color:var(--ink-3);cursor:pointer;
-  font-family:"IBM Plex Sans Arabic",sans-serif;max-width:22ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag.doc{background:none;border-color:var(--rule);color:var(--ink-3);cursor:pointer;
+  font-family:"IBM Plex Sans Arabic",sans-serif;max-width:22ch;overflow:hidden;text-overflow:ellipsis;
+  display:inline-block;line-height:17px}
 .tag.doc:hover{border-color:var(--accent);color:var(--accent)}
 .srcs{display:flex;flex-wrap:wrap;gap:5px}
 .src{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:3px 9px;border-radius:3px;
@@ -223,7 +220,7 @@ footer .credit a{font-weight:600}
     <span class="sub" id="sub"></span>
     <span class="spacer"></span>
     <button class="ghost only-mobile" id="togglefilters">الفلاتر</button>
-    <button class="ghost" id="theme" title="تبديل السمة">◐ السمة</button>
+    <button class="ghost" id="theme" title="تبديل السمة">☾ داكن</button>
     <a class="ghost" id="srclink" href="#" target="_blank" rel="noopener">المستند الأصلي ↗</a>
     <div class="tabs" role="tablist" id="tabs"></div>
   </div>
@@ -362,6 +359,22 @@ function highlight(name, ts){
   }
   flush();
   return wrap;
+}
+
+/* Long text matches per word, so it highlights per word too: find the words that
+   matched and mark the characters inside them. */
+function highlightWords(text, ts, tag){
+  const node = el(tag || "span");
+  if(!ts.length || !text){ node.textContent = text || ""; return node; }
+  const parts = text.split(/(\s+)/);
+  parts.forEach(part => {
+    if(!part.trim()){ node.append(document.createTextNode(part)); return; }
+    const {s: nw} = normMap(part);
+    const hit = ts.some(t =>
+      nw.length >= t.length && nw.length <= t.length + 8 && fzTerm(nw, t));
+    node.append(hit ? el("mark","w",part) : document.createTextNode(part));
+  });
+  return node;
 }
 
 /* ---------- state ---------- */
@@ -685,7 +698,8 @@ function viewSched(counts){
     const top = el("div","top");
     top.append(el("span","km", iv.km ? iv.km.toLocaleString("en-US") + " كم" : "—"));
     if(iv.months) top.append(el("span","tag", iv.months + " شهر"));
-    top.append(el("span","cond", iv.interval));
+    const cond = highlightWords(iv.interval, terms()); cond.className = "cond";
+    top.append(cond);
     if(iv.inherits) top.append(el("span","inh","يشمل الصيانة السابقة"));
     box.append(top);
     const cols = el("div","cols");
@@ -695,7 +709,7 @@ function viewSched(counts){
       const ul = el("ul");
       items.forEach(it => {
         const li = el("li" , itemMatches(it.t) ? "hit" : null);
-        if(it.t) li.append(el("span",null,it.t));
+        if(it.t) li.append(highlightWords(it.t, terms()));
         if(it.links.length){
           const srcs = el("div","srcs");
           it.links.forEach((s,i) => srcs.append(srcLink(s, i, it.t)));
@@ -723,20 +737,20 @@ function viewArts(counts){
   list.forEach(a => {
     const b = el("button");
     b.setAttribute("aria-selected", active && a.id === active.id ? "true":"false");
-    b.append(el("span",null,a.title), el("span","n", String(a.nlinks)));
+    b.append(highlightWords(a.title, terms()), el("span","n", String(a.nlinks)));
     b.onclick = () => { state.artId = a.id; render(); };
     side.append(b);
   });
   const rd = el("div","reader");
   if(active){
-    rd.append(el("h2",null,active.title));
+    rd.append(highlightWords(active.title, terms(), "h2"));
     if(active.orig_title){
       const o = el("p","orig", "في المستند: " + active.orig_title);
       rd.append(o);
     }
     active.blocks.forEach((b, bi) => {
       const d = el("div","blk" + (b.row ? " row" : "") + (b.h ? " h" : ""));
-      if(b.t) d.append(b.h ? el("h3",null,b.t) : el("p",null,b.t));
+      if(b.t) d.append(highlightWords(b.t, terms(), b.h ? "h3" : "p"));
       if(b.links.length){
         const srcs = el("div","srcs");
         b.links.forEach((s,i) => srcs.append(srcLink(s, i, b.t)));
@@ -762,14 +776,15 @@ function viewDocs(counts){
   const wrap = el("div","docs");
   list.sort((a,b) => b.topics - a.topics).forEach(d => {
     const c = el("div","doc");
-    c.append(el("h3",null,d.title));
+    c.append(highlightWords(d.title, terms(), "h3"));
     const meta = el("div","meta");
     meta.append(el("span",null,`${d.topics} موضوع`), el("span",null,`${d.links} رابط`),
                 el("span",null,`${(d.chars/1000).toFixed(0)}k حرف`));
     c.append(meta);
     if(d.sections && d.sections.length){
       const secs = el("div","secs");
-      d.sections.slice(0, 5).forEach(s => secs.append(el("span",null,"• " + s.title)));
+      d.sections.slice(0, 5).forEach(s =>
+        secs.append(highlightWords("• " + s.title, terms())));
       if(d.sections.length > 5) secs.append(el("span",null,`+${d.sections.length - 5} قسم`));
       c.append(secs);
     }
@@ -830,7 +845,7 @@ function viewChanges(counts){
     list.slice(0, 60).forEach(c => {
       const row = el("div","chg " + (c.field === "added" ? "added" : c.field === "removed" ? "removed" : ""));
       row.append(el("span","what", `${ENTITY_AR[c.entity]||c.entity} · ${FIELD_AR[c.field]||c.field}`),
-                 el("span",null, c.label || c.entity_id),
+                 highlight(c.label || c.entity_id, terms()),
                  el("span","delta", [c.before, c.after].filter(x => x != null).join(" → ")));
       box.append(row);
     });
@@ -900,8 +915,8 @@ function moveCursor(d){
 
 /* ---------- theme ---------- */
 function applyTheme(mode){
-  if(mode === "auto") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", mode);
+  if(mode === "dark") document.documentElement.removeAttribute("data-theme");  /* the default */
+  else document.documentElement.setAttribute("data-theme", "light");
   try { localStorage.setItem("mazda-theme", mode); } catch(e) {}
 }
 
@@ -955,15 +970,14 @@ function init(d){
                                       (active ? ` (${active})` : "");
     render();
   };
-  const modes = ["auto","light","dark"];
-  let stored = "auto";
-  try { stored = localStorage.getItem("mazda-theme") || "auto"; } catch(e) {}
-  applyTheme(stored);
-  $("#theme").onclick = () => {
-    stored = modes[(modes.indexOf(stored) + 1) % modes.length];
+  let stored = "dark";
+  try { stored = localStorage.getItem("mazda-theme") === "light" ? "light" : "dark"; } catch(e) {}
+  const paintTheme = () => {
     applyTheme(stored);
-    $("#theme").textContent = stored === "auto" ? "◐ السمة" : stored === "light" ? "☀ فاتح" : "☾ داكن";
+    $("#theme").textContent = stored === "light" ? "☀ فاتح" : "☾ داكن";
   };
+  paintTheme();
+  $("#theme").onclick = () => { stored = stored === "light" ? "dark" : "light"; paintTheme(); };
   readHash();
   render();
 }

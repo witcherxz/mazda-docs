@@ -89,7 +89,7 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
             '<meta name="description" content="دليل صيانة مازدا — عرض منظّم ومحدّث آلياً '
             'من مستند مجتمع مازدا السعودي">'
-            '<meta name="theme-color" content="#8C1D24">'
+            '<meta name="theme-color" content="#131619">'
             '<link rel="manifest" href="manifest.webmanifest">'
             '<link rel="icon" href="data:image/svg+xml,'
             '%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E'
@@ -101,6 +101,6 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
     open(os.path.join(dist, "manifest.webmanifest"), "w", encoding="utf-8").write(
         json.dumps({"name": "دليل مازدا المنظم", "short_name": "دليل مازدا",
                     "lang": "ar", "dir": "rtl", "start_url": ".", "display": "standalone",
-                    "background_color": "#FAF9F6", "theme_color": "#8C1D24"},
+                    "background_color": "#131619", "theme_color": "#131619"},
                    ensure_ascii=False, indent=1))
     return out, os.path.getsize(out)

@@ -48,7 +48,10 @@ One query searches **every** section at once: the tab badges turn into live matc
 show points at the ones that do. Short strings — topic names, document titles, change rows —
 match with full fuzzy scoring; long text like the maintenance cells and article bodies
 matches per word, so `زجج` still finds الزجاج inside a paragraph without every query matching
-everything.
+everything. Every section highlights its hits: character-level inside short names, whole-word
+inside paragraphs, where scattered marks would just be noise.
+
+The page is dark by default; the ☾/☀ button switches it and the choice is remembered.
 
 `/` focuses · `↑` `↓` walk the results · `Enter` opens the top source · `Esc` clears.
 State lives in the URL (`#tab=docs&q=…`), so any view is shareable.
