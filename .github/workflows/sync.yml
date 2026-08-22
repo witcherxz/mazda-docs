@@ -35,8 +35,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Enables Pages on the first run when the Actions token may write. With a
+      # read-only token this fails harmlessly and Pages is turned on in Settings.
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        continue-on-error: true
         with:
           enablement: true
 
