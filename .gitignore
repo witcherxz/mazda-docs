@@ -1,0 +1,15 @@
+# generated
+dist/
+site/
+build/*.json
+build/*.sha
+.cache/
+__pycache__/
+*.pyc
+
+# the 16 MB source snapshot: CI fetches it live, keep it out of history
+دليل صيانة مازدا.docx
+*.docx
+
+# the database is committed on purpose (it carries the change history),
+# so it is deliberately not ignored: build/mazda.db

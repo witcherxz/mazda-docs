@@ -1,0 +1,802 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دليل مازدا المنظم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#FAF9F6; --surface:#FFFFFF; --surface-2:#F2F0EB; --surface-3:#E9E6DF;
+  --ink:#16191D; --ink-2:#4A525E; --ink-3:#7A828E;
+  --rule:#DFDBD3; --rule-strong:#C6C0B5;
+  --accent:#8C1D24; --accent-ink:#8C1D24; --accent-bg:#F6E8E7;
+  --steel:#2C6079; --steel-bg:#E4EEF3;
+  --tg:#2C6079; --yt:#8C1D24; --gd:#3D6F4C; --web:#6B5B45; --arch:#7A828E;
+  --ok:#3D6F4C; --warn:#9A6510;
+  --shadow:0 1px 2px rgba(20,22,26,.05),0 6px 20px rgba(20,22,26,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#131619; --surface:#1A1E22; --surface-2:#22272C; --surface-3:#2B3138;
+  --ink:#E9E7E2; --ink-2:#B4BAC2; --ink-3:#848D98;
+  --rule:#2C3238; --rule-strong:#3E464F;
+  --accent:#E0797E; --accent-ink:#E0797E; --accent-bg:#332123;
+  --steel:#8DBBD2; --steel-bg:#1C2A33;
+  --tg:#8DBBD2; --yt:#E0797E; --gd:#87C298; --web:#C4B08C; --arch:#848D98;
+  --ok:#87C298; --warn:#D3A055;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+  --ground:#131619; --surface:#1A1E22; --surface-2:#22272C; --surface-3:#2B3138;
+  --ink:#E9E7E2; --ink-2:#B4BAC2; --ink-3:#848D98;
+  --rule:#2C3238; --rule-strong:#3E464F;
+  --accent:#E0797E; --accent-ink:#E0797E; --accent-bg:#332123;
+  --steel:#8DBBD2; --steel-bg:#1C2A33;
+  --tg:#8DBBD2; --yt:#E0797E; --gd:#87C298; --web:#C4B08C; --arch:#848D98;
+  --ok:#87C298; --warn:#D3A055;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-size:15.5px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+#app{direction:rtl}
+h1,h2,h3{margin:0;font-family:"Reem Kufi","IBM Plex Sans Arabic",sans-serif;font-weight:600;text-wrap:balance}
+a{color:var(--steel);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.ltr{direction:ltr;unicode-bidi:isolate}
+.skip{position:absolute;inset-inline-start:-9999px}
+.skip:focus{inset-inline-start:12px;top:12px;z-index:40;background:var(--surface);padding:8px 14px;
+  border:1px solid var(--accent);border-radius:4px}
+
+/* ---------- shell ---------- */
+header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--rule);
+  box-shadow:var(--shadow)}
+.bar-in{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;flex-direction:column;gap:11px}
+.brand{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand h1{font-size:20px;letter-spacing:.01em}
+.brand .sub{font-size:12.5px;color:var(--ink-3)}
+.brand .spacer{flex:1}
+.ghost{font-size:12.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:4px 10px}
+.ghost:hover{color:var(--accent);border-color:var(--accent)}
+.tabs{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:2px;
+  overflow-x:auto;max-width:100%}
+.tabs button{padding:6px 14px;border-radius:3px;font-size:14px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+.tabs .badge{font-size:11px;color:var(--ink-3);margin-inline-start:5px}
+.search{display:flex;align-items:center;gap:9px;border:1px solid var(--rule-strong);border-radius:4px;
+  background:var(--ground);padding:0 12px}
+.search:focus-within{border-color:var(--accent)}
+.search input{flex:1;border:0;background:none;padding:10px 0;font:inherit;color:inherit;min-width:0}
+.search input::placeholder{color:var(--ink-3)}
+.search .hint{font-size:11.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:1px 6px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fgroup{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.flabel{font-size:11.5px;color:var(--ink-3);margin-inline-end:2px}
+.f{font-size:12.5px;padding:3px 10px;border:1px solid var(--rule);border-radius:99px;color:var(--ink-2);background:var(--surface)}
+.f:hover{border-color:var(--rule-strong)}
+.f[aria-pressed="true"]{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.yearbox{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3)}
+.yearbox input{width:74px;font:inherit;font-family:"IBM Plex Mono",monospace;padding:3px 8px;border:1px solid var(--rule);
+  border-radius:99px;background:var(--surface);color:inherit}
+.clear{font-size:12.5px;color:var(--accent)}
+
+main{max-width:1180px;margin:0 auto;padding:20px 20px 80px}
+.count{font-size:13px;color:var(--ink-3);margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+
+/* ---------- topics ---------- */
+.letters{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:14px}
+.letters button{min-width:29px;height:29px;border:1px solid var(--rule);border-radius:3px;font-size:13.5px;
+  color:var(--ink-2);background:var(--surface)}
+.letters button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.topic{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;
+  display:flex;flex-direction:column;gap:9px}
+.topic:hover{border-color:var(--rule-strong)}
+.topic.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.topic .head{display:flex;align-items:flex-start;gap:9px}
+.topic .letter{flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:3px;
+  background:var(--surface-2);color:var(--ink-3);font-size:13px;font-weight:600}
+.topic .name{font-weight:600;font-size:15.5px;line-height:1.45;flex:1}
+.topic .name mark{background:none;color:var(--accent);font-weight:700;border-bottom:1.5px solid var(--accent);border-radius:0}
+.topic .n{flex:none;font-size:11.5px;color:var(--ink-3);padding-top:4px}
+.topic .tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--surface-2);color:var(--ink-3);
+  font-family:"IBM Plex Mono",monospace}
+.tag.model{background:var(--steel-bg);color:var(--steel)}
+.tag.doc{background:none;border:1px solid var(--rule);color:var(--ink-3);cursor:pointer;
+  font-family:"IBM Plex Sans Arabic",sans-serif;max-width:22ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag.doc:hover{border-color:var(--accent);color:var(--accent)}
+.srcs{display:flex;flex-wrap:wrap;gap:5px}
+.src{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:3px 9px;border-radius:3px;
+  border:1px solid var(--rule);background:var(--surface-2);max-width:100%}
+.src:hover{border-color:currentColor;text-decoration:none}
+.src .dot{width:6px;height:6px;border-radius:50%;flex:none;background:currentColor}
+.src .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:20ch}
+.src.telegram{color:var(--tg)} .src.youtube{color:var(--yt)} .src.google-doc{color:var(--gd)}
+.src.web,.src.nhtsa,.src.image,.src.maps,.src.instagram,.src.twitter{color:var(--web)}
+.src.archive,.src.shortlink,.src.internal-anchor,.src.gdrive{color:var(--arch)}
+.src.more{color:var(--ink-3);cursor:pointer}
+.src.more:hover{color:var(--accent)}
+.src.nav{border-style:dashed}
+.src.dead{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:1px}
+.src.dead:hover{color:var(--warn)}
+
+/* ---------- schedule ---------- */
+.sched{display:flex;flex-direction:column;gap:12px}
+.iv{background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.iv > .top{display:flex;align-items:center;gap:12px;padding:11px 15px;background:var(--surface-2);
+  border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.iv .km{font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:500;color:var(--accent)}
+.iv .cond{font-size:13.5px;color:var(--ink-2);flex:1;min-width:200px}
+.iv .inh{font-size:11.5px;color:var(--warn);border:1px solid currentColor;border-radius:99px;padding:1px 8px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
+.col{background:var(--surface);padding:12px 15px;display:flex;flex-direction:column;gap:8px}
+.col h3{font-size:12px;letter-spacing:.06em;color:var(--ink-3);font-family:"IBM Plex Sans Arabic",sans-serif;font-weight:600}
+.col ul{margin:0;padding-inline-start:1.1em;display:flex;flex-direction:column;gap:10px;font-size:14px;color:var(--ink-2)}
+.col li{display:flex;flex-direction:column;gap:5px}
+.col li::marker{color:var(--rule-strong)}
+
+/* ---------- articles ---------- */
+.arts{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+.artlist{display:flex;flex-direction:column;gap:2px;max-height:74vh;overflow:auto;
+  border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:6px}
+.artlist button{text-align:start;padding:8px 10px;border-radius:3px;font-size:14px;color:var(--ink-2);
+  display:flex;gap:8px;align-items:baseline}
+.artlist button:hover{background:var(--surface-2)}
+.artlist button[aria-selected="true"]{background:var(--accent-bg);color:var(--accent-ink);font-weight:600}
+.artlist button > span:first-child{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.artlist .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);flex:none}
+.reader{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:20px 22px;
+  display:flex;flex-direction:column;gap:14px;max-height:74vh;overflow:auto}
+.reader h2{font-size:22px;color:var(--accent)}
+.blk{display:flex;flex-direction:column;gap:7px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.blk:last-child{border-bottom:0}
+.blk.row{background:var(--surface-2);border:1px solid var(--rule);border-radius:3px;padding:10px 12px}
+.blk.h h3{font-size:17px;color:var(--ink)}
+.blk p{margin:0;font-size:15px;color:var(--ink-2);line-height:1.7}
+.blk.flash{background:var(--accent-bg);border-radius:3px}
+
+/* ---------- documents ---------- */
+.docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.doc{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:14px 15px;
+  display:flex;flex-direction:column;gap:9px}
+.doc h3{font-size:16.5px}
+.doc .meta{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+.doc .secs{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--ink-2);
+  max-height:112px;overflow:hidden;position:relative}
+.doc .secs span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+.doc .acts a,.doc .acts button{font-size:12.5px;border:1px solid var(--rule);border-radius:3px;padding:4px 10px;color:var(--ink-2)}
+.doc .acts a:hover,.doc .acts button:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+
+/* ---------- changes ---------- */
+.runs{display:flex;flex-direction:column;gap:10px}
+.run{background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.run .rh{display:flex;gap:12px;align-items:center;padding:10px 14px;background:var(--surface-2);
+  border-bottom:1px solid var(--rule);font-size:13px;color:var(--ink-2);flex-wrap:wrap}
+.run .rh .when{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
+.chg{display:grid;grid-template-columns:88px 1fr auto;gap:10px;padding:9px 14px;border-bottom:1px solid var(--rule);
+  font-size:13.5px;align-items:baseline}
+.chg:last-child{border-bottom:0}
+.chg .what{font-size:11.5px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+.chg .delta{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-3);white-space:nowrap}
+.chg.added .what{color:var(--ok)} .chg.removed .what{color:var(--accent)}
+
+.empty{color:var(--ink-3);text-align:center;padding:60px 0;font-size:15px}
+.loading{color:var(--ink-3);text-align:center;padding:80px 0;font-size:15px}
+footer{border-top:1px solid var(--rule);margin-top:32px;padding:18px 0;color:var(--ink-3);font-size:12.5px;
+  display:flex;gap:16px;flex-wrap:wrap}
+@media(max-width:860px){.arts{grid-template-columns:1fr}.artlist{max-height:32vh}}
+@media(max-width:700px){
+  .cols{grid-template-columns:1fr}
+  .bar-in{padding:10px 14px;gap:9px}
+  main{padding:16px 14px 70px}
+  .brand h1{font-size:17px} .brand .sub{display:none}
+  .topics,.docs{grid-template-columns:1fr}
+  .chg{grid-template-columns:1fr;gap:3px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div id="app" lang="ar">
+<a class="skip" href="#view">تخطي إلى النتائج</a>
+<header class="bar"><div class="bar-in">
+  <div class="brand">
+    <h1>دليل مازدا المنظم</h1>
+    <span class="sub" id="sub"></span>
+    <span class="spacer"></span>
+    <button class="ghost" id="theme" title="تبديل السمة">◐ السمة</button>
+    <a class="ghost" id="srclink" href="#" target="_blank" rel="noopener">المستند الأصلي ↗</a>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </div>
+  <label class="search">
+    <span aria-hidden="true">🔍</span>
+    <input id="q" type="search" autocomplete="off"
+           placeholder="بحث تقريبي — يكفي حروف متفرقة: «زجج جنب» أو «حسهوا» أو cx9">
+    <span class="hint mono">/</span>
+  </label>
+  <div class="filters" id="filters"></div>
+</div></header>
+
+<main>
+  <div class="count" id="count" aria-live="polite"></div>
+  <div id="view"><div class="loading">…جارِ التحميل</div></div>
+  <footer id="foot"></footer>
+</main>
+</div>
+
+<script>
+"use strict";
+const INLINE = /*__DATA__*/null;
+let DATA = null, DOCTITLE = {};
+const $ = s => document.querySelector(s);
+const el = (t, cls, txt) => { const n = document.createElement(t); if(cls) n.className = cls;
+  if(txt != null) n.textContent = txt; return n; };
+
+/* ---------- normalization (mirrors tools/common.py) ---------- */
+const DIAC = /[ً-ْـ]/;
+const norm = s => (s||"").replace(/[ً-ْـ]/g,"").replace(/[أإآٱ]/g,"ا")
+  .replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/ؤ/g,"و").replace(/ئ/g,"ي")
+  .replace(/\s+/g," ").trim().toLowerCase();
+
+/* link kind is derived here so the payload doesn't have to carry it */
+const KIND_RULES = [["t.me","telegram"],["youtu","youtube"],["docs.google.com","google-doc"],
+  ["drive.google","gdrive"],["web.archive.org","archive"],["goo.gl","shortlink"],
+  ["ibb.co","image"],["maps.app","maps"],["nhtsa","nhtsa"],["instagram","instagram"],
+  ["twitter","twitter"],["x.com","twitter"]];
+function kindOf(url){
+  if(!url || url[0] === "#" || url.includes("kix.")) return "internal-anchor";
+  for(const [k,v] of KIND_RULES) if(url.includes(k)) return v;
+  return "web";
+}
+const KIND_AR = {telegram:"تيليقرام", youtube:"يوتيوب", "google-doc":"مستند", web:"موقع",
+  nhtsa:"استدعاءات", archive:"أرشيف", shortlink:"رابط مختصر", image:"صورة", maps:"خريطة",
+  instagram:"انستقرام", twitter:"تويتر", gdrive:"درايف", "internal-anchor":"داخلي"};
+const MODEL_AR = {mazda2:"مازدا 2", mazda3:"مازدا 3", mazda6:"مازدا 6", cx3:"CX-3", cx5:"CX-5",
+  cx9:"CX-9", cx30:"CX-30", cx50:"CX-50", cx60:"CX-60", cx70:"CX-70", cx90:"CX-90",
+  mx5:"MX-5", mpv:"MPV"};
+const ENTITY_AR = {topic:"موضوع", doc:"مستند", article:"شرح", interval:"صيانة", link:"رابط"};
+const FIELD_AR = {added:"أُضيف", removed:"حُذف", sources:"تغيّرت مصادره", content:"تغيّر محتواه",
+  title:"تغيّر عنوانه", text:"تغيّر نصه", items:"تغيّرت بنوده", restored:"عاد"};
+
+/* ---------- fuzzy matching (fzf-style subsequence scoring) ---------- */
+const BOUND = /[\s\-–—>()\[\]،,:;/\\.*+]/;
+function normMap(str){
+  let out = "", map = [];
+  for(let i = 0; i < str.length; i++){
+    let c = str[i];
+    if(DIAC.test(c)) continue;
+    if(/\s/.test(c)){ if(out.endsWith(" ")) continue; c = " "; }
+    else c = c.replace(/[أإآٱ]/,"ا").replace(/ى/,"ي").replace(/ة/,"ه")
+              .replace(/ؤ/,"و").replace(/ئ/,"ي").toLowerCase();
+    out += c; map.push(i);
+  }
+  return {s: out.trim(), map};
+}
+function fzTerm(hay, needle){
+  const n = needle.length;
+  if(!n || !hay) return null;
+  let hi = 0, last = -1;
+  for(let i = 0; i < n; i++){
+    const idx = hay.indexOf(needle[i], hi);
+    if(idx < 0) return null;
+    hi = idx + 1; last = idx;
+  }
+  const pos = new Array(n);
+  pos[n-1] = last;
+  for(let i = n - 2; i >= 0; i--){
+    const idx = hay.lastIndexOf(needle[i], pos[i+1] - 1);
+    if(idx < 0) return null;
+    pos[i] = idx;
+  }
+  let score = 0;
+  for(let i = 0; i < n; i++){
+    const p = pos[i];
+    let s = 1;
+    if(p === 0) s += 16; else if(BOUND.test(hay[p-1])) s += 11;
+    if(i > 0){ const gap = p - pos[i-1] - 1; s += gap === 0 ? 9 : -Math.min(gap, 7); }
+    score += s;
+  }
+  score -= pos[0] * 0.08;
+  score += (n / hay.length) * 5;
+  return {score, pos};
+}
+function fzAll(hay, terms){
+  let score = 0, pos = [];
+  for(const t of terms){
+    const m = fzTerm(hay, t);
+    if(!m) return null;
+    score += m.score; pos = pos.concat(m.pos);
+  }
+  return {score, pos};
+}
+function scoreTopic(t, terms){
+  const a = fzAll(t.norm, terms);
+  if(a) return a.score * 3 + Math.min(t.n, 12) * 0.4;
+  const b = t.snorm ? fzAll(t.snorm, terms) : null;
+  return b ? b.score : null;
+}
+function highlight(name, ts){
+  const wrap = el("span","name");
+  if(!ts.length){ wrap.textContent = name; return wrap; }
+  const {s, map} = normMap(name);
+  const m = fzAll(s, ts);
+  if(!m){ wrap.textContent = name; return wrap; }
+  const hit = new Set(m.pos.map(p => map[p]));
+  let buf = "", marked = false;
+  const flush = () => { if(!buf) return;
+    wrap.append(marked ? el("mark",null,buf) : document.createTextNode(buf)); buf = ""; };
+  for(let i = 0; i < name.length; i++){
+    const on = hit.has(i);
+    if(on !== marked){ flush(); marked = on; }
+    buf += name[i];
+  }
+  flush();
+  return wrap;
+}
+
+/* ---------- state ---------- */
+const state = {tab:"topics", q:"", models:new Set(), engines:new Set(), kinds:new Set(),
+  docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null};
+
+function terms(){
+  const q = norm(state.q);
+  return q ? q.split(" ").filter(Boolean) : [];
+}
+function matchFacets(f){
+  f = f || {};
+  const models = f.models || [], engines = f.engines || [], years = f.years || [];
+  if(state.models.size && !models.some(m => state.models.has(m))) return false;
+  if(state.engines.size && !engines.some(e => state.engines.has(e))) return false;
+  if(state.year){
+    const y = +state.year;
+    if(years.length && !years.some(([a,b]) => y >= a && y <= b)) return false;
+  }
+  return true;
+}
+function topicsFiltered(){
+  const ts = terms(), out = [];
+  for(const t of DATA.topics){
+    if(state.letter && t.letter !== state.letter) continue;
+    if(state.docs.size && !state.docs.has(t.doc)) continue;
+    if(state.kinds.size && !t.kinds.some(k => state.kinds.has(k))) continue;
+    if(!matchFacets(t.f)) continue;
+    if(ts.length){
+      const sc = scoreTopic(t, ts);
+      if(sc === null) continue;
+      t._score = sc;
+    }
+    out.push(t);
+  }
+  if(ts.length && out.length > 8){
+    const best = Math.max(...out.map(t => t._score));
+    return out.filter(t => t._score >= best * 0.3);
+  }
+  return out;
+}
+function articlesFiltered(){
+  const ts = terms(), out = [];
+  for(const a of DATA.articles){
+    if(!matchFacets(a.f)) continue;
+    if(ts.length){
+      const m = fzAll(norm(a.title), ts);
+      const body = ts.every(w => (a.norm||"").includes(w));
+      if(!m && !body) continue;
+      a._score = (m ? m.score * 2 : 0) + (body ? 6 : 0);
+    }
+    out.push(a);
+  }
+  if(ts.length) out.sort((x,y) => y._score - x._score);
+  return out;
+}
+function docsFiltered(){
+  const ts = terms();
+  return (DATA.docs||[]).filter(d => {
+    if(!matchFacets(d.f)) return false;
+    if(!ts.length) return true;
+    const hay = norm(d.title + " " + (d.sections||[]).map(s => s.title).join(" "));
+    return !!fzAll(hay, ts);
+  });
+}
+
+/* ---------- chrome ---------- */
+function chip(label, on, click, cls){
+  const b = el("button", "f " + (cls||""), label);
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.onclick = () => { click(); render(); };
+  return b;
+}
+function toggle(set, key){ set.has(key) ? set.delete(key) : set.add(key); }
+
+function buildTabs(){
+  const box = $("#tabs"); box.textContent = "";
+  const s = DATA.stats;
+  const tabs = [["topics","الفهرس", s.topics], ["sched","جدول الصيانة", s.intervals],
+                ["arts","الشروحات", s.articles], ["docs","المستندات", s.docs],
+                ["changes","التحديثات", (DATA.changes||[]).length]];
+  tabs.forEach(([k, label, n]) => {
+    const b = el("button"); b.setAttribute("role","tab"); b.dataset.tab = k;
+    b.setAttribute("aria-selected", state.tab === k ? "true":"false");
+    b.append(el("span",null,label), el("span","badge mono", n ? String(n) : ""));
+    b.onclick = () => { state.tab = k; state.cursor = 0; render(); };
+    box.append(b);
+  });
+}
+function buildFilters(){
+  const box = $("#filters"); box.textContent = "";
+  if(state.tab === "sched" || state.tab === "changes") return;
+
+  if(state.tab !== "docs"){
+    const counts = {};
+    DATA.topics.forEach(t => (t.f.models||[]).forEach(m => counts[m] = (counts[m]||0)+1));
+    const g1 = el("div","fgroup"); g1.append(el("span","flabel","الموديل:"));
+    Object.keys(MODEL_AR).filter(m => counts[m]).forEach(m =>
+      g1.append(chip(`${MODEL_AR[m]} ${counts[m]}`, state.models.has(m),
+        () => toggle(state.models, m))));
+    const g2 = el("div","fgroup"); g2.append(el("span","flabel","المحرك:"));
+    ["1.6","2.0","2.5","3.5","3.7"].forEach(e =>
+      g2.append(chip(e, state.engines.has(e), () => toggle(state.engines, e))));
+    const g3 = el("div","fgroup"); g3.append(el("span","flabel","المصدر:"));
+    Object.entries(DATA.stats.kinds).sort((a,b)=>b[1]-a[1]).slice(0,5).forEach(([k]) =>
+      g3.append(chip(KIND_AR[k]||k, state.kinds.has(k), () => toggle(state.kinds, k))));
+    const g4 = el("div","yearbox");
+    g4.append(el("span",null,"سنة الموديل:"));
+    const yi = el("input"); yi.type = "number"; yi.placeholder = "2019";
+    yi.min = 1970; yi.max = 2030; yi.value = state.year;
+    yi.oninput = () => { state.year = yi.value; render(); };
+    g4.append(yi);
+    box.append(g1, g2, g3, g4);
+    if(state.tab === "topics"){
+      const sorts = state.q ? [["rel","الأنسب"],["abc","أبجدي"],["n","الأكثر مصادر"]]
+                            : [["abc","أبجدي"],["n","الأكثر مصادر"]];
+      const g5 = el("div","fgroup"); g5.append(el("span","flabel","الترتيب:"));
+      sorts.forEach(([k,lab]) => g5.append(chip(lab, state.sort === k, () => state.sort = k)));
+      box.append(g5);
+    }
+  }
+  if(state.docs.size){
+    const g6 = el("div","fgroup"); g6.append(el("span","flabel","المستند:"));
+    [...state.docs].forEach(d =>
+      g6.append(chip((DOCTITLE[d]||d).slice(0,26) + " ✕", true, () => state.docs.delete(d))));
+    box.append(g6);
+  }
+  const any = state.models.size||state.engines.size||state.kinds.size||state.docs.size||
+              state.year||state.letter||state.q;
+  if(any){
+    const c = el("button","clear","مسح الفلاتر ✕");
+    c.onclick = () => { state.models.clear(); state.engines.clear(); state.kinds.clear();
+      state.docs.clear(); state.year=""; state.letter=""; state.q=""; $("#q").value="";
+      state.cursor = 0; render(); };
+    box.append(c);
+  }
+}
+
+/* ---------- views ---------- */
+function srcLink(s, i, topicName){
+  const kind = s.kind || kindOf(s.url);
+  const bad = (DATA.health || {})[s.url];
+  const dead = bad && bad[0] === "dead";
+  const archive = dead ? bad[1] : null;
+  const a = el("a", "src " + kind + (s.nav ? " nav" : "") + (dead ? " dead" : ""));
+  a.href = archive || s.url; a.target = "_blank"; a.rel = "noopener";
+  a.title = dead
+    ? (archive ? "الرابط الأصلي معطّل — يفتح نسخة من الأرشيف" : "الرابط معطّل")
+    : `${KIND_AR[kind]||kind} — ${s.url}`;
+  if(s.nav){
+    a.href = "#art=" + s.nav.a; a.target = "_self";
+    a.onclick = ev => { ev.preventDefault(); state.tab = "arts"; state.artId = s.nav.a;
+      state.artBlock = s.nav.b; state.q = ""; $("#q").value = ""; render(); };
+  }
+  a.append(el("span","dot"));
+  let label = (s.label && s.label.length > 1 && !/^[\s>*]+$/.test(s.label)) ? s.label : String(i+1);
+  if(topicName && norm(label) === norm(topicName)) label = KIND_AR[kind] || kind;
+  if(s.nav) label = "↩ " + label;
+  if(dead) label = (archive ? "⟲ " : "✕ ") + label;
+  a.append(el("span","lab", label));
+  return a;
+}
+function chipLetter(label, L){
+  const b = el("button", null, label);
+  b.setAttribute("aria-pressed", state.letter === L ? "true":"false");
+  b.onclick = () => { state.letter = L; state.cursor = 0; render(); };
+  return b;
+}
+function viewTopics(){
+  const wrap = el("div");
+  const letters = el("div","letters");
+  letters.append(chipLetter("الكل",""), ...DATA.letters.map(L => chipLetter(L, L)));
+  wrap.append(letters);
+
+  const list = topicsFiltered();
+  const ts = terms();
+  if(state.sort === "n") list.sort((a,b) => b.n - a.n);
+  else if(ts.length && state.sort === "rel") list.sort((a,b) => b._score - a._score);
+  state.cursor = Math.max(0, Math.min(state.cursor, list.length - 1));
+  window._list = list;
+
+  const grid = el("div","topics");
+  list.slice(0, 400).forEach((t, i) => {
+    const c = el("div","topic" + (i === state.cursor && ts.length ? " cur" : ""));
+    if(i === state.cursor && ts.length) c.id = "cursor";
+    const head = el("div","head");
+    head.append(el("span","letter", t.letter||"·"), highlight(t.name, ts),
+                el("span","n mono", String(t.n)));
+    c.append(head);
+    const tags = el("div","tags");
+    (t.f.models||[]).forEach(m => tags.append(el("span","tag model", MODEL_AR[m]||m)));
+    (t.f.engines||[]).forEach(e => tags.append(el("span","tag", e)));
+    if(t.f.turbo === "turbo") tags.append(el("span","tag","تيربو"));
+    (t.f.years||[]).slice(0,2).forEach(([a,b]) =>
+      tags.append(el("span","tag ltr", a===b?`${a}`:`${a}–${b}`)));
+    if(t.doc && t.doc !== "hub"){
+      const d = el("button","tag doc", DOCTITLE[t.doc] || "مستند فرعي");
+      d.title = "عرض مواضيع هذا المستند";
+      d.onclick = () => { state.docs.clear(); state.docs.add(t.doc); state.cursor = 0; render(); };
+      tags.append(d);
+    }
+    if(tags.children.length) c.append(tags);
+    const srcs = el("div","srcs"), CAP = 8;
+    t.sources.slice(0, CAP).forEach((s,i2) => srcs.append(srcLink(s, i2, t.name)));
+    if(t.sources.length > CAP){
+      const more = el("button","src more", `+${t.sources.length - CAP} مصدر`);
+      more.onclick = () => { more.remove();
+        t.sources.slice(CAP).forEach((s,i2) => srcs.append(srcLink(s, i2 + CAP, t.name))); };
+      srcs.append(more);
+    }
+    c.append(srcs);
+    grid.append(c);
+  });
+  wrap.append(grid);
+  if(!list.length) wrap.append(el("div","empty","لا توجد نتائج مطابقة. جرّب حروفاً أقل أو امسح الفلاتر."));
+
+  $("#count").textContent = "";
+  if(ts.length){
+    const hint = el("span"); hint.append(el("span","mono ltr","↑↓ · Enter"),
+      document.createTextNode(" للتنقل وفتح أول مصدر"));
+    $("#count").append(hint);
+  }
+  $("#count").append(el("span",null,`${list.length} موضوع`),
+    el("span",null,`${list.reduce((n,t)=>n+t.n,0)} مصدر`));
+  if(list.length > 400) $("#count").append(el("span",null,"يُعرض أول 400"));
+  return wrap;
+}
+function viewSched(){
+  const wrap = el("div","sched");
+  DATA.schedule.forEach(iv => {
+    const box = el("div","iv");
+    const top = el("div","top");
+    top.append(el("span","km", iv.km ? iv.km.toLocaleString("en-US") + " كم" : "—"));
+    if(iv.months) top.append(el("span","tag", iv.months + " شهر"));
+    top.append(el("span","cond", iv.interval));
+    if(iv.inherits) top.append(el("span","inh","يشمل الصيانة السابقة"));
+    box.append(top);
+    const cols = el("div","cols");
+    [["تغيير / تنظيف", iv.replace], ["فحص", iv.inspect]].forEach(([title, items]) => {
+      const col = el("div","col");
+      col.append(el("h3",null,`${title} · ${items.length}`));
+      const ul = el("ul");
+      items.forEach(it => {
+        const li = el("li");
+        if(it.t) li.append(el("span",null,it.t));
+        if(it.links.length){
+          const srcs = el("div","srcs");
+          it.links.forEach((s,i) => srcs.append(srcLink(s, i, it.t)));
+          li.append(srcs);
+        }
+        ul.append(li);
+      });
+      col.append(ul);
+      cols.append(col);
+    });
+    box.append(cols);
+    wrap.append(box);
+  });
+  $("#count").textContent = `${DATA.schedule.length} فترة صيانة — مستخرجة من جدول المستند`;
+  return wrap;
+}
+function viewArts(){
+  const list = articlesFiltered();
+  const wrap = el("div","arts");
+  const side = el("div","artlist");
+  const active = list.find(x => x.id === state.artId) || list[0];
+  list.forEach(a => {
+    const b = el("button");
+    b.setAttribute("aria-selected", active && a.id === active.id ? "true":"false");
+    b.append(el("span",null,a.title), el("span","n", String(a.nlinks)));
+    b.onclick = () => { state.artId = a.id; render(); };
+    side.append(b);
+  });
+  const rd = el("div","reader");
+  if(active){
+    rd.append(el("h2",null,active.title));
+    active.blocks.forEach((b, bi) => {
+      const d = el("div","blk" + (b.row ? " row" : "") + (b.h ? " h" : ""));
+      if(b.t) d.append(b.h ? el("h3",null,b.t) : el("p",null,b.t));
+      if(b.links.length){
+        const srcs = el("div","srcs");
+        b.links.forEach((s,i) => srcs.append(srcLink(s, i, b.t)));
+        d.append(srcs);
+      }
+      d.dataset.b = bi;
+      rd.append(d);
+    });
+    if(state.artBlock != null){
+      const t = rd.querySelector(`[data-b="${state.artBlock}"]`);
+      if(t) requestAnimationFrame(() => { t.scrollIntoView({block:"center"});
+        t.classList.add("flash"); setTimeout(() => t.classList.remove("flash"), 1600); });
+      state.artBlock = null;
+    }
+  } else rd.append(el("div","empty","لا يوجد شرح مطابق."));
+  wrap.append(side, rd);
+  $("#count").textContent = `${list.length} شرح من أصل ${DATA.articles.length}`;
+  return wrap;
+}
+function viewDocs(){
+  const list = docsFiltered();
+  const wrap = el("div","docs");
+  list.sort((a,b) => b.topics - a.topics).forEach(d => {
+    const c = el("div","doc");
+    c.append(el("h3",null,d.title));
+    const meta = el("div","meta");
+    meta.append(el("span",null,`${d.topics} موضوع`), el("span",null,`${d.links} رابط`),
+                el("span",null,`${(d.chars/1000).toFixed(0)}k حرف`));
+    c.append(meta);
+    if(d.sections && d.sections.length){
+      const secs = el("div","secs");
+      d.sections.slice(0, 5).forEach(s => secs.append(el("span",null,"• " + s.title)));
+      if(d.sections.length > 5) secs.append(el("span",null,`+${d.sections.length - 5} قسم`));
+      c.append(secs);
+    }
+    const acts = el("div","acts");
+    const show = el("button",null,"عرض مواضيعه");
+    show.onclick = () => { state.docs.clear(); state.docs.add(d.id); state.tab = "topics";
+      state.cursor = 0; render(); };
+    const open = el("a",null,"فتح في قوقل ↗");
+    open.href = d.url; open.target = "_blank"; open.rel = "noopener";
+    acts.append(show, open);
+    c.append(acts);
+    wrap.append(c);
+  });
+  if(!list.length) wrap.append(el("div","empty","لا مستندات مطابقة."));
+  $("#count").textContent = `${list.length} مستند فرعي — يُسحب محتواها آلياً مع المستند الرئيسي`;
+  return wrap;
+}
+function viewChanges(){
+  const wrap = el("div","runs");
+  const changes = DATA.changes || [];
+  if(!changes.length){
+    wrap.append(el("div","empty",
+      "لا تغييرات مسجلة بعد — هذه أول نسخة. أي تعديل يقوم به المجتمع في المستند سيظهر هنا بعد المزامنة القادمة."));
+  }
+  const byRun = {};
+  changes.forEach(c => (byRun[c.run_at] = byRun[c.run_at] || []).push(c));
+  Object.entries(byRun).sort((a,b) => b[0].localeCompare(a[0])).forEach(([at, list]) => {
+    const box = el("div","run");
+    const rh = el("div","rh");
+    rh.append(el("span","when", at.replace("T"," ").replace("Z"," UTC")),
+              el("span",null,`${list.length} تغيير`));
+    box.append(rh);
+    list.slice(0, 60).forEach(c => {
+      const row = el("div","chg " + (c.field === "added" ? "added" : c.field === "removed" ? "removed" : ""));
+      row.append(el("span","what", `${ENTITY_AR[c.entity]||c.entity} · ${FIELD_AR[c.field]||c.field}`),
+                 el("span",null, c.label || c.entity_id),
+                 el("span","delta", [c.before, c.after].filter(x => x != null).join(" → ")));
+      box.append(row);
+    });
+    wrap.append(box);
+  });
+  const runs = DATA.runs || [];
+  $("#count").textContent = runs.length
+    ? `آخر مزامنة ${runs[0].at.replace("T"," ").replace("Z"," UTC")} · ${runs.length} تشغيل مسجل`
+    : "";
+  return wrap;
+}
+
+/* ---------- render ---------- */
+function render(){
+  buildTabs();
+  buildFilters();
+  const v = $("#view"); v.textContent = "";
+  v.append(state.tab === "topics" ? viewTopics()
+         : state.tab === "sched"  ? viewSched()
+         : state.tab === "arts"   ? viewArts()
+         : state.tab === "docs"   ? viewDocs()
+         : viewChanges());
+  writeHash();
+}
+
+/* ---------- url state ---------- */
+function readHash(){
+  const h = new URLSearchParams(location.hash.slice(1));
+  const tab = h.get("tab");
+  if(["topics","sched","arts","docs","changes"].includes(tab)) state.tab = tab;
+  if(h.get("q")){ state.q = h.get("q"); $("#q").value = state.q; }
+  if(h.get("art")){ state.artId = h.get("art"); if(!h.get("tab")) state.tab = "arts"; }
+  if(h.get("doc")) state.docs.add(h.get("doc"));
+  if(h.get("letter")) state.letter = h.get("letter");
+}
+function writeHash(){
+  const p = new URLSearchParams();
+  if(state.tab !== "topics") p.set("tab", state.tab);
+  if(state.q) p.set("q", state.q);
+  if(state.tab === "arts" && state.artId) p.set("art", state.artId);
+  if(state.docs.size) p.set("doc", [...state.docs][0]);
+  if(state.letter) p.set("letter", state.letter);
+  const h = p.toString();
+  history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
+}
+
+/* ---------- keyboard ---------- */
+function openCursor(){
+  const t = (window._list || [])[state.cursor];
+  if(!t || !t.sources.length) return;
+  const s0 = t.sources[0];
+  if(s0.nav){ state.tab = "arts"; state.artId = s0.nav.a; state.artBlock = s0.nav.b;
+    state.q = ""; $("#q").value = ""; render(); return; }
+  window.open(s0.url, "_blank", "noopener");
+}
+function moveCursor(d){
+  state.cursor += d;
+  render();
+  const c = document.getElementById("cursor");
+  if(c) c.scrollIntoView({block:"nearest"});
+}
+
+/* ---------- theme ---------- */
+function applyTheme(mode){
+  if(mode === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", mode);
+  try { localStorage.setItem("mazda-theme", mode); } catch(e) {}
+}
+
+/* ---------- boot ---------- */
+function init(d){
+  DATA = d;
+  (DATA.docs || []).forEach(x => DOCTITLE[x.id] = x.title);
+  DOCTITLE.hub = "الدليل الرئيسي";
+  DATA.topics.forEach(t => { if(!t.norm) t.norm = norm(t.name); if(!t.f) t.f = {}; });
+  const s = DATA.stats;
+  $("#sub").textContent = `${s.docs} مستندات · ${s.topics} موضوع · محدّث ${(DATA.built_at||"").slice(0,10)}`;
+  $("#srclink").href = DATA.source;
+  $("#foot").textContent = "";
+  $("#foot").append(
+    el("span",null,`${s.topics} موضوع`), el("span",null,`${s.sources} مصدر مرتّب`),
+    el("span",null,`${s.links} رابط`), el("span",null,`${s.docs} مستند`),
+    el("span","mono ltr", (DATA.sha||"").slice(0,12)),
+    s.checked ? el("span",null,`فُحص ${s.checked} رابط · ${s.dead} معطّل`) : el("span"),
+    el("span",null,"المحتوى ملك مجتمع مازدا — هذه الصفحة عرض منظّم فقط، والمصدر هو المستند"));
+
+  let t = null;
+  $("#q").oninput = e => { clearTimeout(t); t = setTimeout(() => {
+    state.q = e.target.value; state.cursor = 0; render(); }, 120); };
+  document.addEventListener("keydown", e => {
+    if(state.tab === "topics" && terms().length){
+      if(e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")){ e.preventDefault(); return moveCursor(1); }
+      if(e.key === "ArrowUp"   || (e.ctrlKey && e.key === "p")){ e.preventDefault(); return moveCursor(-1); }
+      if(e.key === "Enter" && document.activeElement === $("#q")){ e.preventDefault(); return openCursor(); }
+    }
+    if(e.key === "/" && document.activeElement !== $("#q")){ e.preventDefault(); $("#q").focus(); }
+    if(e.key === "Escape" && document.activeElement === $("#q")){
+      $("#q").value = ""; state.q = ""; render(); }
+  });
+  const modes = ["auto","light","dark"];
+  let stored = "auto";
+  try { stored = localStorage.getItem("mazda-theme") || "auto"; } catch(e) {}
+  applyTheme(stored);
+  $("#theme").onclick = () => {
+    stored = modes[(modes.indexOf(stored) + 1) % modes.length];
+    applyTheme(stored);
+    $("#theme").textContent = stored === "auto" ? "◐ السمة" : stored === "light" ? "☀ فاتح" : "☾ داكن";
+  };
+  readHash();
+  render();
+}
+if(INLINE) init(INLINE);
+else fetch("data.json").then(r => r.json()).then(init).catch(err => {
+  $("#view").textContent = "";
+  $("#view").append(el("div","empty","تعذّر تحميل البيانات: " + err));
+});
+</script>

@@ -1,0 +1,94 @@
+# دليل مازدا المنظم — organized Mazda community guide
+
+A browsable, searchable view of the Saudi Mazda owners' community knowledge base, generated
+automatically from their Google Doc
+([دليل صيانة مازدا](https://docs.google.com/document/d/1Yj0AP9xVrkLqIf01mdelU4m4OcQR-NGxuTNYpGeiIvM/edit))
+and the 48 satellite documents it links to.
+
+**The doc stays the single source of truth.** The community keeps editing exactly as they do
+today; this repository only reads, and never writes back.
+
+```
+4,540 topics · 10,146 ranked sources · 49 documents · 18,069 links
+14 maintenance intervals · 19 article sections · full change history
+```
+
+## Run it
+
+```bash
+make fast     # hub document only — ~2 seconds
+make build    # everything, satellites from cache
+make live     # pull the doc from Google first
+make test     # extraction guardrails (22 tests)
+make serve    # http://localhost:8000
+```
+
+Python 3 standard library only. No pandoc, no python-docx, no npm, no build step.
+
+Two outputs, one template:
+
+| Output | What it is |
+|---|---|
+| `site/index.html` | everything inlined in one 3.2 MB file — opens from the filesystem, works offline, easy to share |
+| `dist/` | shell + `data.json` — what gets deployed, so the payload is fetched once and served gzipped (~590 KB) |
+
+## Search
+
+Fuzzy, fzf-style: query characters only have to appear **in order**, so `زجج جنب` finds
+الزجاج الجانبي and `حسهوا` finds حساس الهواء — it even reaches `الزجاجالجانبي`, the entry in
+the source doc with the missing space. Scoring rewards contiguous runs, matches at word
+starts and shorter names; matched characters are highlighted. Space separates terms (all must
+match), and `data/aliases.json` widens 60 synonym groups so الدعسة also finds الثروتل.
+
+Arabic is normalized identically on both sides — diacritics stripped, أإآ→ا, ة→ه, ى→ي.
+
+`/` focuses · `↑` `↓` walk the results · `Enter` opens the top source · `Esc` clears.
+State lives in the URL (`#tab=docs&q=…`), so any view is shareable.
+
+## What the site shows
+
+- **الفهرس** — every topic with its ranked sources, colour-coded by kind (Telegram, YouTube,
+  document, site), filtered by model / engine / year / source / document.
+- **جدول الصيانة** — the maintenance matrix: interval → replace/clean vs inspect, with the
+  "includes the previous service" inheritance the doc encodes.
+- **الشروحات** — the long-form sections, with internal doc links turned into in-app jumps.
+- **المستندات** — the 48 satellite documents, their sections, and a jump into their topics.
+- **التحديثات** — what the community changed, run by run.
+
+Dead links are struck through and, where the Wayback Machine has a copy, they open the
+archived version instead.
+
+## Pipeline
+
+```
+tools/pipeline.py           fetch → parse → store → diff → build
+├── common.py               normalization, link classification, facets, cached fetch
+├── hub.py                  .docx (OOXML) parser: topics, schedule, articles, anchors
+├── satellites.py           the 48 linked docs via mobilebasic (1 MB each, not 300 MB)
+├── store.py                SQLite mirror + change log (build/mazda.db)
+├── linkcheck.py            link rot detection + Wayback fallback
+├── render.py               builds site/ and dist/
+└── template.html           the UI — data is injected at build time
+```
+
+Change detection hashes the doc's *extracted text*, never the .docx bytes (the zip is not
+reproducible). Topic IDs hash the normalized name, so a topic keeps its identity when the
+community reorders the index, and renames surface as changes instead of duplicates.
+
+`build/mazda.db` is committed on purpose: it carries the history of what changed and when.
+
+## Deploying
+
+See [DEPLOY.md](DEPLOY.md). Short version: push to GitHub, set Pages to "GitHub Actions",
+and `.github/workflows/sync.yml` rebuilds and republishes daily.
+
+## Background
+
+[FEASIBILITY.md](FEASIBILITY.md) is the study this was built from — the structural patterns
+in the source document, what parses reliably, what needs human curation, and the risks.
+
+## Credit
+
+All content belongs to the Saudi Mazda owners' community. This is a generated view of their
+work and carries the document's own disclaimer:
+المعلومات الوارده لأغراض نشر الثقافه فقط.
