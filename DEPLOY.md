@@ -44,7 +44,7 @@ Settings → Pages. Enforce HTTPS once the certificate is issued.
 |---|---|---|
 | **Cloudflare Pages** | build `pip install nothing; python3 tools/pipeline.py --live`, output `dist` | Best if you want the site served from inside Saudi Arabia's nearest PoP; also gives free analytics |
 | **Netlify** | same build command, publish `dist` | Deploy previews per PR |
-| **Any static host / S3 / nginx** | `make build` then upload `dist/` | Serve `data.json` with gzip — it drops 3.2 MB to ~590 KB |
+| **Any static host / S3 / nginx** | `make build` then upload `dist/` | Serve `data.json` with gzip — it drops 2.5 MB to ~458 KB |
 | **No host at all** | `make build` then open `site/index.html` | Single self-contained file, works offline, easy to share on Telegram |
 
 ## Sizes and cost
@@ -52,8 +52,8 @@ Settings → Pages. Enforce HTTPS once the certificate is issued.
 | Thing | Size | Note |
 |---|---|---|
 | `dist/index.html` | ~38 KB | shell: markup, styles, search engine |
-| `dist/data.json` | ~3.2 MB (~590 KB gzipped) | fetched once, cached by the browser |
-| `site/index.html` | ~3.2 MB | same data inlined, for offline/file sharing |
+| `dist/data.json` | ~2.5 MB (~458 KB gzipped) | fetched once, cached by the browser |
+| `site/index.html` | ~2.6 MB | same data inlined, for offline/file sharing |
 | Hub doc fetch | 16.7 MB per sync | the .docx export |
 | Satellite crawl | ~55 MB per full crawl | 48 docs via `mobilebasic`; cached 6 h by default |
 | GitHub Actions | ~2 min per run | far inside the free tier |
@@ -70,6 +70,9 @@ make fast       # hub only — 2 seconds, good while editing the UI
 make test       # extraction guardrails
 make serve      # http://localhost:8000
 make links      # health-check 300 links and record the results
+
+# any pipeline call takes --dry-run: reports the diff, records nothing
+python3 tools/pipeline.py --live --dry-run
 ```
 
 **Watching for breakage.** Every run records a row in the `run` table and writes

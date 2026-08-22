@@ -93,21 +93,38 @@ class Satellites(unittest.TestCase):
     HTML = """<html><head><title>قطع الغيار</title></head><body>
       <h1 id="s1">مصادر الشراء</h1>
       <p><a href="https://www.google.com/url?q=https://t.me/x/1&amp;sa=D">ارقام القطع</a>
-         <a href="https://www.google.com/url?q=https://t.me/x/2&amp;sa=D">2</a></p>
+         <a href="https://www.google.com/url?q=https://t.me/x/2&amp;sa=D">2</a>
+         <a href="https://www.google.com/url?q=https://t.me/x/3&amp;sa=D">ب350 ريال</a></p>
     </body></html>"""
 
-    def test_title_sections_and_topics(self):
-        d = satellites.parse(self.HTML, "docid123")
-        self.assertEqual(d["title"], "قطع الغيار")
-        self.assertEqual(d["sections"][0]["title"], "مصادر الشراء")
-        self.assertEqual(len(d["topics"]), 1)
-        t = d["topics"][0]
-        self.assertEqual(t["name"], "ارقام القطع")
-        self.assertEqual(len(t["sources"]), 2)          # the bare "2" is a second source
+    def setUp(self):
+        self.doc = satellites.parse(self.HTML, "docid123")
+        self.by_name = {t["name"]: t for t in self.doc["topics"]}
+
+    def test_title_and_sections(self):
+        self.assertEqual(self.doc["title"], "قطع الغيار")
+        self.assertEqual(self.doc["sections"][0]["title"], "مصادر الشراء")
+
+    def test_heading_becomes_a_topic_holding_the_links_under_it(self):
+        section = self.by_name["مصادر الشراء"]
+        self.assertEqual(len(section["sources"]), 3)
+
+    def test_strongly_named_link_also_gets_its_own_topic(self):
+        self.assertIn("ارقام القطع", self.by_name)
+        self.assertEqual(len(self.by_name["ارقام القطع"]["sources"]), 1)
+
+    def test_price_and_marker_labels_do_not_become_topics(self):
+        for junk in ["2", "ب350 ريال"]:
+            self.assertNotIn(junk, self.by_name)
+
+    def test_strong_name_rules(self):
+        for good in ["ارقام القطع", "تنظيف الرديتر من الخارج"]:
+            self.assertTrue(satellites.strong_name(good), good)
+        for bad in ["2", "ب350 ريال", "بتاريخ 1/2023", "زيت", "42"]:
+            self.assertFalse(satellites.strong_name(bad), bad)
 
     def test_google_redirect_is_unwrapped(self):
-        d = satellites.parse(self.HTML, "docid123")
-        self.assertEqual(d["topics"][0]["sources"][0]["url"], "https://t.me/x/1")
+        self.assertEqual(self.by_name["ارقام القطع"]["sources"][0]["url"], "https://t.me/x/1")
 
 
 class Store(unittest.TestCase):

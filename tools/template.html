@@ -61,6 +61,8 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .brand .spacer{flex:1}
 .ghost{font-size:12.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:4px 10px}
 .ghost:hover{color:var(--accent);border-color:var(--accent)}
+.only-mobile{display:none}
+.filters.hidden{display:none}
 .tabs{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:2px;
   overflow-x:auto;max-width:100%}
 .tabs button{padding:6px 14px;border-radius:3px;font-size:14px;font-weight:500;color:var(--ink-2);white-space:nowrap}
@@ -191,6 +193,7 @@ footer{border-top:1px solid var(--rule);margin-top:32px;padding:18px 0;color:var
   display:flex;gap:16px;flex-wrap:wrap}
 @media(max-width:860px){.arts{grid-template-columns:1fr}.artlist{max-height:32vh}}
 @media(max-width:700px){
+  .only-mobile{display:inline-block}
   .cols{grid-template-columns:1fr}
   .bar-in{padding:10px 14px;gap:9px}
   main{padding:16px 14px 70px}
@@ -208,6 +211,7 @@ footer{border-top:1px solid var(--rule);margin-top:32px;padding:18px 0;color:var
     <h1>دليل مازدا المنظم</h1>
     <span class="sub" id="sub"></span>
     <span class="spacer"></span>
+    <button class="ghost only-mobile" id="togglefilters">الفلاتر</button>
     <button class="ghost" id="theme" title="تبديل السمة">◐ السمة</button>
     <a class="ghost" id="srclink" href="#" target="_blank" rel="noopener">المستند الأصلي ↗</a>
     <div class="tabs" role="tablist" id="tabs"></div>
@@ -340,7 +344,8 @@ function highlight(name, ts){
 
 /* ---------- state ---------- */
 const state = {tab:"topics", q:"", models:new Set(), engines:new Set(), kinds:new Set(),
-  docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null};
+  docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null,
+  showFilters: window.matchMedia("(min-width: 701px)").matches};
 
 function terms(){
   const q = norm(state.q);
@@ -427,6 +432,7 @@ function buildTabs(){
 }
 function buildFilters(){
   const box = $("#filters"); box.textContent = "";
+  box.classList.toggle("hidden", !state.showFilters);
   if(state.tab === "sched" || state.tab === "changes") return;
 
   if(state.tab !== "docs"){
@@ -782,6 +788,14 @@ function init(d){
     if(e.key === "Escape" && document.activeElement === $("#q")){
       $("#q").value = ""; state.q = ""; render(); }
   });
+  $("#togglefilters").onclick = () => {
+    state.showFilters = !state.showFilters;
+    const active = state.models.size + state.engines.size + state.kinds.size +
+                   state.docs.size + (state.year ? 1 : 0) + (state.letter ? 1 : 0);
+    $("#togglefilters").textContent = (state.showFilters ? "إخفاء الفلاتر" : "الفلاتر") +
+                                      (active ? ` (${active})` : "");
+    render();
+  };
   const modes = ["auto","light","dark"];
   let stored = "auto";
   try { stored = localStorage.getItem("mazda-theme") || "auto"; } catch(e) {}

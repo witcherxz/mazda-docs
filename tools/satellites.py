@@ -106,38 +106,63 @@ class DocParser(HTMLParser):
             self._a["label"] += data
 
 
+PRICE_OR_DATE = re.compile(r"(ريال|رس\b|بتاريخ|\d{1,2}[\\/]\d{2,4})")
+
+def strong_name(label):
+    """Satellite docs link mid-sentence, so their anchor text is often a price, a date
+    or a fragment. Only well-formed multi-word labels become topics of their own."""
+    s = (label or "").strip(" >*,،()")
+    if len(s) < 8 or PRICE_OR_DATE.search(s):
+        return False
+    if s[0].isdigit():
+        return False
+    words = [w for w in s.split() if len(w) > 1]
+    return len(words) >= 2 and len(re.findall(r"[ء-يA-Za-z]", s)) >= 6
+
+
 def topics_from_blocks(blocks, doc_id, doc_title):
-    """Same rule as the hub: a named link is a topic, bare markers are extra sources."""
-    topics, section = [], doc_title
+    """Headings carry this document's real structure, so they become the topics and the
+    links under them become their sources; a strongly-named link also earns its own entry."""
+    topics, section = [], None
+
+    def new_topic(name, note, key):
+        t = {"id": slug(doc_id[:6] + key), "letter": None, "name": name.strip(" >*,،"),
+             "note": note or doc_title, "sources": [], "doc": doc_id}
+        topics.append(t)
+        return t
+
     for b in blocks:
         if b["h"]:
-            section = b["t"][:90] or section
+            title = b["t"][:90]
+            if title:
+                section = new_topic(title, doc_title, "h:" + title)
+                section["sources"].extend(b["links"])
             continue
-        cur, last = None, None
         for l in b["links"]:
-            if cur is None and not real_name(l["label"]):
-                if last is not None:
-                    last["sources"].append(l)
-                continue
-            if cur is None or real_name(l["label"]):
-                cur = {"id": slug(doc_id[:6] + l["label"]), "letter": None,
-                       "name": l["label"].strip(" >*,،"), "note": section,
-                       "sources": [], "doc": doc_id}
-                topics.append(cur)
-                last = cur
-            cur["sources"].append(l)
+            if section is not None:
+                section["sources"].append(l)
+            if strong_name(l["label"]):
+                t = new_topic(l["label"], section["name"] if section else doc_title,
+                              "l:" + l["label"])
+                t["sources"].append(l)
+
     out, seen = [], {}
     for t in topics:
-        if not real_name(t["name"]):
+        if not real_name(t["name"]) or not t["sources"]:
             continue
-        m = seen.get(t["id"])
-        if m:
-            urls = {s["url"] for s in m["sources"]}
-            m["sources"] += [s for s in t["sources"] if s["url"] not in urls]
+        prev = seen.get(t["id"])
+        if prev:
+            urls = {s["url"] for s in prev["sources"]}
+            prev["sources"] += [s for s in t["sources"] if s["url"] not in urls]
             continue
         seen[t["id"]] = t
         out.append(t)
     for t in out:
+        urls, uniq = set(), []
+        for s in t["sources"]:                      # keep source order, drop repeats
+            if s["url"] not in urls:
+                urls.add(s["url"]); uniq.append(s)
+        t["sources"] = uniq[:40]
         blob = t["name"] + " " + t["note"] + " " + " ".join(s["label"] for s in t["sources"])
         t.update(norm=norm_ar(t["name"]), snorm=norm_ar(blob),
                  f=facets(t["name"] + " " + t["note"]),

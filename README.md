@@ -9,7 +9,7 @@ and the 48 satellite documents it links to.
 today; this repository only reads, and never writes back.
 
 ```
-4,540 topics · 10,146 ranked sources · 49 documents · 18,069 links
+3,584 topics · 6,269 ranked sources · 49 documents · 18,069 links
 14 maintenance intervals · 19 article sections · full change history
 ```
 
@@ -21,6 +21,7 @@ make build    # everything, satellites from cache
 make live     # pull the doc from Google first
 make test     # extraction guardrails (22 tests)
 make serve    # http://localhost:8000
+# add --dry-run to any pipeline call to see the diff without recording it
 ```
 
 Python 3 standard library only. No pandoc, no python-docx, no npm, no build step.
@@ -29,8 +30,8 @@ Two outputs, one template:
 
 | Output | What it is |
 |---|---|
-| `site/index.html` | everything inlined in one 3.2 MB file — opens from the filesystem, works offline, easy to share |
-| `dist/` | shell + `data.json` — what gets deployed, so the payload is fetched once and served gzipped (~590 KB) |
+| `site/index.html` | everything inlined in one 2.6 MB file — opens from the filesystem, works offline, easy to share |
+| `dist/` | shell + `data.json` — what gets deployed, so the payload is fetched once and served gzipped (~480 KB) |
 
 ## Search
 
