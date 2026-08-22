@@ -162,7 +162,10 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .tag.doc{background:none;border-color:var(--rule);color:var(--ink-3);cursor:pointer;
   font-family:"IBM Plex Sans Arabic",sans-serif;max-width:22ch;
   display:inline-flex;align-items:center;line-height:1}
-.tag.doc .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+/* Arabic descenders (ي ج ق) fall below a tight line box, and overflow:hidden — needed
+   for the ellipsis — would shave them off, so give the label room */
+.tag.doc .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;
+  line-height:1.75;padding-bottom:1px}
 .tag.doc:hover{border-color:var(--accent);color:var(--accent)}
 .srcs{display:flex;flex-wrap:wrap;gap:5px}
 .src{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:3px 9px;border-radius:3px;
