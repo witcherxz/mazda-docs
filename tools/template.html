@@ -68,6 +68,10 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .tabs button{padding:6px 14px;border-radius:3px;font-size:14px;font-weight:500;color:var(--ink-2);white-space:nowrap}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
 .tabs .badge{font-size:11px;color:var(--ink-3);margin-inline-start:5px}
+.tabs button.nohits{opacity:.45}
+.jump{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:12px}
+.col li.hit{color:var(--ink);font-weight:500}
+.col li.hit::marker{color:var(--accent)}
 .search{display:flex;align-items:center;gap:9px;border:1px solid var(--rule-strong);border-radius:4px;
   background:var(--ground);padding:0 12px}
 .search:focus-within{border-color:var(--accent)}
@@ -324,6 +328,17 @@ function fzAll(hay, terms){
   }
   return {score, pos};
 }
+/* Long text can't take blob-level fuzzy — every query would match something. Match each
+   term against individual words instead, so "زجج" still finds "الزجاج" in a paragraph. */
+function wordFuzzy(words, ts){
+  return ts.every(t => words.some(w =>
+    w.length >= t.length && w.length <= t.length + 8 && fzTerm(w, t)));
+}
+function longMatch(cache, ts){
+  if(!cache.words) cache.words = (cache.text || "").split(" ").filter(w => w.length > 1);
+  return ts.every(t => cache.text.includes(t)) || wordFuzzy(cache.words, ts);
+}
+
 function scoreTopic(t, terms){
   const a = fzAll(t.norm, terms);
   if(a) return a.score * 3 + Math.min(t.n, 12) * 0.4;
@@ -369,7 +384,20 @@ function matchFacets(f){
   }
   return true;
 }
+/* every render asks for the same filtered list twice (tab counts, then the view) */
+let _memoKey = null, _memoVal = null;
+function filterKey(){
+  return [state.q, state.letter, state.year, [...state.models].sort(),
+          [...state.engines].sort(), [...state.kinds].sort(), [...state.docs].sort()].join("|");
+}
 function topicsFiltered(){
+  const key = filterKey();
+  if(key === _memoKey) return _memoVal;
+  const val = computeTopics();
+  _memoKey = key; _memoVal = val;
+  return val;
+}
+function computeTopics(){
   const ts = terms(), out = [];
   for(const t of DATA.topics){
     if(state.letter && t.letter !== state.letter) continue;
@@ -395,7 +423,8 @@ function articlesFiltered(){
     if(!matchFacets(a.f)) continue;
     if(ts.length){
       const m = fzAll(norm(a.title), ts);
-      const body = ts.every(w => (a.norm||"").includes(w));
+      if(!a._hay) a._hay = {text: a.norm || ""};
+      const body = longMatch(a._hay, ts);
       if(!m && !body) continue;
       a._score = (m ? m.score * 2 : 0) + (body ? 6 : 0);
     }
@@ -403,6 +432,32 @@ function articlesFiltered(){
   }
   if(ts.length) out.sort((x,y) => y._score - x._score);
   return out;
+}
+function schedFiltered(){
+  const ts = terms();
+  return DATA.schedule.filter(iv => {
+    if(!ts.length) return true;
+    if(!iv._hay){
+      iv._hay = {text: norm([iv.interval,
+        ...iv.replace.map(i => i.t + " " + i.links.map(l => l.label).join(" ")),
+        ...iv.inspect.map(i => i.t + " " + i.links.map(l => l.label).join(" "))].join(" "))};
+    }
+    return longMatch(iv._hay, ts);
+  });
+}
+function changesFiltered(){
+  const ts = terms();
+  return (DATA.changes || []).filter(c => {
+    if(!ts.length) return true;
+    if(!c._norm) c._norm = norm([c.label, c.entity_id, ENTITY_AR[c.entity] || c.entity,
+                                 FIELD_AR[c.field] || c.field].join(" "));
+    return !!fzAll(c._norm, ts);
+  });
+}
+function itemMatches(text){
+  const ts = terms();
+  if(!ts.length) return false;
+  return longMatch({text: norm(text || "")}, ts);
 }
 function docsFiltered(){
   const ts = terms();
@@ -423,19 +478,51 @@ function chip(label, on, click, cls){
 }
 function toggle(set, key){ set.has(key) ? set.delete(key) : set.add(key); }
 
-function buildTabs(){
+/* one query, counted across every section */
+function tabCounts(){
+  const searching = terms().length > 0;
+  const st = DATA.stats;
+  return {
+    topics:  searching ? topicsFiltered().length   : st.topics,
+    sched:   searching ? schedFiltered().length    : st.intervals,
+    arts:    searching ? articlesFiltered().length : st.articles,
+    docs:    searching ? docsFiltered().length     : st.docs,
+    changes: searching ? changesFiltered().length  : (DATA.changes||[]).length,
+  };
+}
+const TAB_AR = {topics:"الفهرس", sched:"جدول الصيانة", arts:"الشروحات",
+                docs:"المستندات", changes:"التحديثات"};
+function buildTabs(counts){
   const box = $("#tabs"); box.textContent = "";
-  const s = DATA.stats;
-  const tabs = [["topics","الفهرس", s.topics], ["sched","جدول الصيانة", s.intervals],
-                ["arts","الشروحات", s.articles], ["docs","المستندات", s.docs],
-                ["changes","التحديثات", (DATA.changes||[]).length]];
-  tabs.forEach(([k, label, n]) => {
+  const searching = terms().length > 0;
+  Object.keys(TAB_AR).forEach(k => {
     const b = el("button"); b.setAttribute("role","tab"); b.dataset.tab = k;
     b.setAttribute("aria-selected", state.tab === k ? "true":"false");
-    b.append(el("span",null,label), el("span","badge mono", n ? String(n) : ""));
+    const n = counts[k];
+    b.classList.toggle("nohits", searching && !n);
+    b.append(el("span",null,TAB_AR[k]), el("span","badge mono", n ? String(n) : "0"));
     b.onclick = () => { state.tab = k; state.cursor = 0; render(); };
     box.append(b);
   });
+}
+/* when this section has nothing but another does, offer the jump */
+function elsewhere(counts){
+  const others = Object.keys(TAB_AR).filter(k => k !== state.tab && counts[k]);
+  const box = el("div","empty");
+  box.append(el("div", null, others.length
+    ? "لا نتائج في هذا القسم."
+    : "لا نتائج لهذا البحث — جرّب حروفاً أقل، أو امسح الفلاتر."));
+  if(others.length){
+    const row = el("div","jump");
+    row.append(el("span",null,"لكن هناك نتائج في:"));
+    others.forEach(k => {
+      const b = el("button","f", `${TAB_AR[k]} (${counts[k]})`);
+      b.onclick = () => { state.tab = k; state.cursor = 0; render(); };
+      row.append(b);
+    });
+    box.append(row);
+  }
+  return box;
 }
 function buildFilters(){
   const box = $("#filters"); box.textContent = "";
@@ -517,13 +604,13 @@ function chipLetter(label, L){
   b.onclick = () => { state.letter = L; state.cursor = 0; render(); };
   return b;
 }
-function viewTopics(){
+function viewTopics(counts){
   const wrap = el("div");
   const letters = el("div","letters");
   letters.append(chipLetter("الكل",""), ...DATA.letters.map(L => chipLetter(L, L)));
   wrap.append(letters);
 
-  const list = topicsFiltered();
+  const list = topicsFiltered().slice();   /* copy: sorting must not disturb the memo */
   const ts = terms();
   /* the dataset already arrives alphabetically, so "abc" needs no work */
   if(state.sort === "n") list.sort((a,b) => b.n - a.n);
@@ -576,7 +663,7 @@ function viewTopics(){
     grid.append(c);
   });
   wrap.append(grid);
-  if(!list.length) wrap.append(el("div","empty","لا توجد نتائج مطابقة. جرّب حروفاً أقل أو امسح الفلاتر."));
+  if(!list.length) wrap.append(elsewhere(counts));
 
   $("#count").textContent = "";
   if(ts.length){
@@ -589,9 +676,11 @@ function viewTopics(){
   if(list.length > 400) $("#count").append(el("span",null,"يُعرض أول 400"));
   return wrap;
 }
-function viewSched(){
+function viewSched(counts){
   const wrap = el("div","sched");
-  DATA.schedule.forEach(iv => {
+  const list = schedFiltered();
+  if(!list.length){ $("#count").textContent = ""; return elsewhere(counts); }
+  list.forEach(iv => {
     const box = el("div","iv");
     const top = el("div","top");
     top.append(el("span","km", iv.km ? iv.km.toLocaleString("en-US") + " كم" : "—"));
@@ -605,7 +694,7 @@ function viewSched(){
       col.append(el("h3",null,`${title} · ${items.length}`));
       const ul = el("ul");
       items.forEach(it => {
-        const li = el("li");
+        const li = el("li" , itemMatches(it.t) ? "hit" : null);
         if(it.t) li.append(el("span",null,it.t));
         if(it.links.length){
           const srcs = el("div","srcs");
@@ -620,11 +709,14 @@ function viewSched(){
     box.append(cols);
     wrap.append(box);
   });
-  $("#count").textContent = `${DATA.schedule.length} فترة صيانة — مستخرجة من جدول المستند`;
+  $("#count").textContent = terms().length
+    ? `${list.length} فترة صيانة مطابقة من ${DATA.schedule.length}`
+    : `${DATA.schedule.length} فترة صيانة — مستخرجة من جدول المستند`;
   return wrap;
 }
-function viewArts(){
+function viewArts(counts){
   const list = articlesFiltered();
+  if(!list.length){ $("#count").textContent = ""; return elsewhere(counts); }
   const wrap = el("div","arts");
   const side = el("div","artlist");
   const active = list.find(x => x.id === state.artId) || list[0];
@@ -659,13 +751,14 @@ function viewArts(){
         t.classList.add("flash"); setTimeout(() => t.classList.remove("flash"), 1600); });
       state.artBlock = null;
     }
-  } else rd.append(el("div","empty","لا يوجد شرح مطابق."));
+  }
   wrap.append(side, rd);
   $("#count").textContent = `${list.length} شرح من أصل ${DATA.articles.length}`;
   return wrap;
 }
-function viewDocs(){
+function viewDocs(counts){
   const list = docsFiltered();
+  if(!list.length){ $("#count").textContent = ""; return elsewhere(counts); }
   const wrap = el("div","docs");
   list.sort((a,b) => b.topics - a.topics).forEach(d => {
     const c = el("div","doc");
@@ -690,14 +783,16 @@ function viewDocs(){
     c.append(acts);
     wrap.append(c);
   });
-  if(!list.length) wrap.append(el("div","empty","لا مستندات مطابقة."));
-  $("#count").textContent = `${list.length} مستند فرعي — يُسحب محتواها آلياً مع المستند الرئيسي`;
+  $("#count").textContent = terms().length
+    ? `${list.length} مستند مطابق من ${(DATA.docs||[]).length}`
+    : `${list.length} مستند فرعي — يُسحب محتواها آلياً مع المستند الرئيسي`;
   return wrap;
 }
-function viewChanges(){
+function viewChanges(counts){
   const wrap = el("div","runs");
   const s = DATA.stats;
-  if(s.checked){
+  const searching = terms().length > 0;
+  if(s.checked && !searching){
     const card = el("div","run");
     const rh = el("div","rh");
     rh.append(el("span","when","صحة الروابط"),
@@ -718,7 +813,8 @@ function viewChanges(){
     }
     wrap.append(card);
   }
-  const changes = DATA.changes || [];
+  const changes = changesFiltered();
+  if(searching && !changes.length){ $("#count").textContent = ""; return elsewhere(counts); }
   if(!changes.length){
     wrap.append(el("div","empty",
       "لا تغييرات مسجلة بعد — هذه أول نسخة. أي تعديل يقوم به المجتمع في المستند سيظهر هنا بعد المزامنة القادمة."));
@@ -748,17 +844,18 @@ function viewChanges(){
 }
 
 /* ---------- render ---------- */
-function render(){
-  buildTabs();
+var render = function(){
+  const counts = tabCounts();
+  buildTabs(counts);
   buildFilters();
   const v = $("#view"); v.textContent = "";
-  v.append(state.tab === "topics" ? viewTopics()
-         : state.tab === "sched"  ? viewSched()
-         : state.tab === "arts"   ? viewArts()
-         : state.tab === "docs"   ? viewDocs()
-         : viewChanges());
+  v.append(state.tab === "topics" ? viewTopics(counts)
+         : state.tab === "sched"  ? viewSched(counts)
+         : state.tab === "arts"   ? viewArts(counts)
+         : state.tab === "docs"   ? viewDocs(counts)
+         : viewChanges(counts));
   writeHash();
-}
+};
 
 /* ---------- url state ---------- */
 function readHash(){

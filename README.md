@@ -43,6 +43,13 @@ match), and `data/aliases.json` widens 60 synonym groups so الدعسة also fi
 
 Arabic is normalized identically on both sides — diacritics stripped, أإآ→ا, ة→ه, ى→ي.
 
+One query searches **every** section at once: the tab badges turn into live match counts
+(`الفهرس 42 · جدول الصيانة 5 · الشروحات 5 · المستندات 4`), and a section with nothing to
+show points at the ones that do. Short strings — topic names, document titles, change rows —
+match with full fuzzy scoring; long text like the maintenance cells and article bodies
+matches per word, so `زجج` still finds الزجاج inside a paragraph without every query matching
+everything.
+
 `/` focuses · `↑` `↓` walk the results · `Enter` opens the top source · `Esc` clears.
 State lives in the URL (`#tab=docs&q=…`), so any view is shareable.
 
