@@ -41,9 +41,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
 .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 .ltr{direction:ltr;unicode-bidi:isolate}
-.skip{position:absolute;inset-inline-start:-9999px}
-.skip:focus{inset-inline-start:12px;top:12px;z-index:40;background:var(--surface);padding:8px 14px;
-  border:1px solid var(--accent);border-radius:4px}
+/* hidden without being moved off-canvas: a negative offset in RTL pushes the page wider */
+.skip{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.skip:focus{width:auto;height:auto;clip-path:none;inset-inline-start:12px;top:12px;z-index:40;
+  background:var(--surface);padding:8px 14px;border:1px solid var(--accent);border-radius:4px}
 
 /* ---------- shell ---------- */
 header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--rule);
@@ -187,8 +188,13 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .src:hover{border-color:currentColor;text-decoration:none}
 .src .dot{width:6px;height:6px;border-radius:50%;flex:none;background:currentColor}
 .src .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:20ch}
-.cap{flex-basis:100%;font-size:11.5px;color:var(--ink-3);margin-top:3px;line-height:1.5}
-.cap::before{content:"↳ ";opacity:.7}
+.grp{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px;max-width:100%;
+  padding:2px 3px;border:1px solid var(--rule);border-radius:5px;background:var(--surface-2)}
+.grp .src{border-color:transparent;background:none;padding:2px 5px}
+.grp .src:hover{border-color:currentColor}
+.grp .mk{background:var(--surface)}
+.grp.capgrp{border-style:dashed}
+.cap{font-size:11.5px;color:var(--ink-3);padding:0 4px;line-height:1.5}
 .src.more{color:var(--ink-3);cursor:pointer}
 .src.more:hover{color:var(--accent)}
 .src.nav{border-style:dashed}
@@ -1006,24 +1012,42 @@ function viewTopics(counts){
       tags.append(d);
     }
     if(tags.children.length) c.append(tags);
+    /* The doc hangs numbered links off whichever source came before them, titled or
+       captioned. Render each head with its own numbers as one cluster so "الخلفي>2>3"
+       cannot read as belonging to "الامامي". */
     const srcs = el("div","srcs"), CAP = 8;
-    /* the doc captions a run of numbered sources with plain text — keep that grouping */
-    let lastCap = null, groupN = 0;
     const titled = s => (s.label || "").length > 2 && !/^[\s>*«»·،,.\d]+$/.test(s.label);
-    const addSource = (s, i2) => {
-      if((s.g || null) !== lastCap){
-        lastCap = s.g || null;
-        groupN = 0;
-        if(s.g) srcs.append(el("span","cap", s.g));
+    const groups = [];
+    let g = null;
+    t.sources.forEach(s => {
+      const cap = s.g || null;
+      if(!g || titled(s) || cap !== g.cap){
+        g = {cap, head: titled(s) ? s : null, items: []};
+        groups.push(g);
+        if(g.head) return;
       }
-      if(titled(s)) groupN = 0; else groupN += 1;
-      srcs.append(srcLink(s, groupN, t.name));
+      g.items.push(s);
+    });
+    const renderGroup = grp => {
+      // a source with nothing hanging off it needs no cluster around it
+      if(grp.head && !grp.cap && !grp.items.length) return srcLink(grp.head, 0, t.name);
+      const box = el("div", "grp" + (grp.head ? "" : " capgrp"));
+      if(grp.cap) box.append(el("span","cap", grp.cap));
+      if(grp.head) box.append(srcLink(grp.head, 0, t.name));
+      grp.items.forEach((s, i) => box.append(srcLink(s, i + 1, t.name)));
+      return box;
     };
-    t.sources.slice(0, CAP).forEach(addSource);
-    if(t.sources.length > CAP){
-      const more = el("button","src more", `+${t.sources.length - CAP} مصدر`);
-      more.onclick = () => { more.remove();
-        t.sources.slice(CAP).forEach((s, i2) => addSource(s, i2 + CAP)); };
+    let shown = 0, cut = groups.length;
+    for(let i = 0; i < groups.length; i++){
+      shown += 1 + groups[i].items.length;
+      if(shown >= CAP){ cut = i + 1; break; }
+    }
+    groups.slice(0, cut).forEach(grp => srcs.append(renderGroup(grp)));
+    const rest = groups.slice(cut);
+    if(rest.length){
+      const hidden = rest.reduce((n, grp) => n + (grp.head ? 1 : 0) + grp.items.length, 0);
+      const more = el("button","src more", `+${hidden} مصدر`);
+      more.onclick = () => { more.remove(); rest.forEach(grp => srcs.append(renderGroup(grp))); };
       srcs.append(more);
     }
     c.append(srcs);
