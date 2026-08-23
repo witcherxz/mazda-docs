@@ -124,7 +124,8 @@ header.bar{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .task.hit .txt{color:var(--ink);font-weight:500}
 .search{display:flex;align-items:center;gap:9px;border:1px solid var(--rule-strong);border-radius:4px;
   background:var(--ground);padding:0 12px}
-.search:focus-within{border-color:var(--accent)}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.search input:focus-visible{outline:none}   /* the wrapper carries the focus ring */
 .search input{flex:1;border:0;background:none;padding:10px 0;font:inherit;color:inherit;min-width:0}
 .search input::placeholder{color:var(--ink-3)}
 .search .hint{font-size:11.5px;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:1px 6px}
@@ -1041,16 +1042,21 @@ function viewTopics(counts){
     let g = null;
     t.sources.forEach((s, i) => {
       const cap = s.g || null;
-      // a titled source heads a cluster only when numbers hang off it; otherwise it is
-      // just another labelled source sitting alongside its siblings
-      const nxt = t.sources[i + 1];
-      const owns = titled(s) && !!nxt && isMarker(nxt);
-      if(!g || owns || cap !== g.cap){
-        g = {cap, head: owns ? s : null, items: []};
-        groups.push(g);
-        if(g.head) return;
+      if(isMarker(s)){                       // numbers join whatever they hang off
+        if(!g || g.cap !== cap){ g = {cap, head: null, items: []}; groups.push(g); }
+        g.items.push(s);
+        return;
       }
-      g.items.push(s);
+      // a titled source opens a cluster only when numbers follow it; otherwise it is a
+      // sibling and stands on its own, unboxed
+      const nxt = t.sources[i + 1];
+      if(nxt && isMarker(nxt)){
+        g = {cap: nxt.g || null, head: s, items: []};
+        groups.push(g);
+      } else {
+        g = null;
+        groups.push({cap: null, head: s, items: []});
+      }
     });
     const renderGroup = grp => {
       // a lone source needs no cluster around it, with or without a head
