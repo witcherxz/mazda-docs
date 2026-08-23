@@ -93,10 +93,11 @@ def extract_topics(tbl, rels, anchors=None):
                     # never hyperlinked (الفحص الدوري للمرور>1>2). Mid-chain it is a caption
                     # describing the numbered sources that follow (>شروط وأحكام التأمين>0>1).
                     nxt = flat[pos + 1] if pos + 1 < flat_len else None
-                    if nxt and nxt[0] == "L" and MARKER_ONLY.match(nxt[1] or ""):
+                    if nxt and nxt[0] == "L":
+                        marker_next = bool(MARKER_ONLY.match(nxt[1] or ""))
                         phrase = CAPTION_EDGE.sub("", SPLIT.split(text)[-1])
                         if real_name(phrase):
-                            if cur is not None and not SPLIT.search(text):
+                            if cur is not None and not SPLIT.search(text) and marker_next:
                                 caption = phrase          # stays inside this topic
                             else:
                                 cur = {"id": slug(phrase), "letter": letter, "name": phrase,
@@ -105,7 +106,9 @@ def extract_topics(tbl, rels, anchors=None):
                                 topics.append(cur)
                                 last = cur
                                 caption = None
-                                chained = synonym = False
+                                synonym = False
+                                # whatever follows belongs to this phrase, titled or not
+                                chained = True
                     continue
                 if cur is None and not real_name(text):
                     if last is not None:            # stray marker -> previous topic
@@ -146,7 +149,7 @@ def extract_topics(tbl, rels, anchors=None):
     merged, order = {}, {}
     for t in topics:
         order.setdefault(t["letter"], len(order))
-        if not real_name(t["name"]):
+        if not real_name(t["name"]) or not t["sources"]:
             continue
         m = merged.setdefault(t["id"], {**t, "sources": []})
         seen = {s["url"] for s in m["sources"]}

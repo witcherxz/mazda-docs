@@ -176,6 +176,26 @@ class TopicGrouping(unittest.TestCase):
         self.assertEqual([s.get("g") for s in topics[0]["sources"]],
                          [None, "شروط وأحكام", None])
 
+    def test_a_phrase_owning_a_titled_link_becomes_the_topic(self):
+        """"(تطفى المكينة فجأة" is the symptom; the link after it is one of its sources."""
+        topics = self.cell([("L", "تنظيف حساس الهواء", "r1"), ("T", ",(تطفى المكينة فجأة "),
+                            ("L", "خوارزمية الفحص", "r2"), ("T", ">"), ("L", "2", "r3")])
+        self.assertCountEqual([t["name"] for t in topics],
+                              ["تنظيف حساس الهواء", "تطفى المكينة فجأة"])
+        symptom = next(t for t in topics if t["name"] == "تطفى المكينة فجأة")
+        self.assertEqual([s["label"] for s in symptom["sources"]], ["خوارزمية الفحص", "2"])
+
+    def test_a_phrase_with_nothing_after_it_is_dropped(self):
+        """Trailing prose owns no sources, so it is not a topic."""
+        topics = self.cell([("L", "بطارية السيارة", "r1"), ("T", ", نص بلا مصادر")])
+        self.assertEqual([t["name"] for t in topics], ["بطارية السيارة"])
+
+    def test_the_phrase_owns_the_link_that_follows_it(self):
+        """The link is the phrase's source, not a topic competing with it."""
+        topics = self.cell([("T", "تطفى المكينة فجأة "), ("L", "خوارزمية الفحص", "r1")])
+        self.assertEqual([t["name"] for t in topics], ["تطفى المكينة فجأة"])
+        self.assertEqual([s["label"] for s in topics[0]["sources"]], ["خوارزمية الفحص"])
+
     def test_a_separator_before_the_phrase_still_starts_a_topic(self):
         topics = self.cell([("L", "باقي المدن", "r1"), ("T", ") الفحص الدوري للمرور>"),
                             ("L", "1", "r2")])
