@@ -183,12 +183,13 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
   line-height:1.75;padding-bottom:1px}
 .tag.doc:hover{border-color:var(--accent);color:var(--accent)}
 .srcs{display:flex;flex-wrap:wrap;gap:5px}
-.src{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:3px 9px;border-radius:3px;
+.src{display:inline-flex;align-items:flex-start;gap:5px;font-size:12.5px;padding:3px 9px;border-radius:3px;
   border:1px solid var(--rule);background:var(--surface-2);max-width:100%;
   color:var(--k, var(--web))}
 .src:hover{border-color:currentColor;text-decoration:none}
-.src .dot{width:6px;height:6px;border-radius:50%;flex:none;background:currentColor}
-.src .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:20ch}
+.src .dot{width:6px;height:6px;border-radius:50%;flex:none;background:currentColor;margin-top:6px}
+/* a source label is the only thing naming that link, so let it wrap rather than clip */
+.src .lab{white-space:normal;overflow-wrap:anywhere;text-align:start}
 .grp{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px;max-width:100%;
   padding:2px 3px;border:1px solid var(--rule);border-radius:5px;background:var(--surface-2)}
 .grp .src{border-color:transparent;background:none;padding:2px 5px;font-weight:500}
