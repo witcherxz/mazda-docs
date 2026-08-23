@@ -21,6 +21,11 @@ class Normalization(unittest.TestCase):
         self.assertEqual(common.norm_ar("سيارة"), common.norm_ar("سياره"))
         self.assertEqual(common.norm_ar("  مِفتاح  "), "مفتاح")
 
+    def test_arabic_and_latin_digits_normalise_together(self):
+        """The doc writes both "م6" and "م٦"; either spelling must find the other."""
+        self.assertEqual(common.norm_ar("م٦"), common.norm_ar("م6"))
+        self.assertEqual(common.norm_ar("مازدا ٢٠١٩"), "مازدا 2019")
+
     def test_slug_is_stable_across_spelling_variants(self):
         self.assertEqual(common.slug("الزجاج الجانبي"), common.slug("الزجاج الجانبى"))
 

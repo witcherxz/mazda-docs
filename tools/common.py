@@ -27,7 +27,9 @@ AR_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 LETTERS = re.compile(r"[ء-يA-Za-z]")
 
 def norm_ar(s):
-    s = AR_DIAC.sub("", s or "")
+    # the doc writes both "م6" and "م٦"; one spelling must find the other
+    s = (s or "").translate(AR_DIGITS)
+    s = AR_DIAC.sub("", s)
     s = re.sub(r"[أإآٱ]", "ا", s).replace("ى", "ي").replace("ة", "ه") \
          .replace("ؤ", "و").replace("ئ", "ي")
     return re.sub(r"\s+", " ", s).strip().lower()

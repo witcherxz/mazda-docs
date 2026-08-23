@@ -336,7 +336,9 @@ const el = (t, cls, txt) => { const n = document.createElement(t); if(cls) n.cla
 
 /* ---------- normalization (mirrors tools/common.py) ---------- */
 const DIAC = /[ً-ْـ]/;
-const norm = s => (s||"").replace(/[ً-ْـ]/g,"").replace(/[أإآٱ]/g,"ا")
+const AR_DIGIT = /[٠-٩]/g;
+const asciiDigit = d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d));
+const norm = s => (s||"").replace(AR_DIGIT, asciiDigit).replace(/[ً-ْـ]/g,"").replace(/[أإآٱ]/g,"ا")
   .replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/ؤ/g,"و").replace(/ئ/g,"ي")
   .replace(/\s+/g," ").trim().toLowerCase();
 
@@ -368,6 +370,7 @@ function normMap(str){
   for(let i = 0; i < str.length; i++){
     let c = str[i];
     if(DIAC.test(c)) continue;
+    if(AR_DIGIT.test(c)) c = asciiDigit(c);      /* keeps highlight offsets aligned */
     if(/\s/.test(c)){ if(out.endsWith(" ")) continue; c = " "; }
     else c = c.replace(/[أإآٱ]/,"ا").replace(/ى/,"ي").replace(/ة/,"ه")
               .replace(/ؤ/,"و").replace(/ئ/,"ي").toLowerCase();
@@ -952,7 +955,6 @@ function srcLink(s, i, topicName){
   const own = (s.label || "").match(/\d+/);
   let label = (s.label && s.label.length > 1 && !/^[\s>*]+$/.test(s.label)) ? s.label
             : (own ? own[0] : String(i));
-  if(topicName && norm(label) === norm(topicName)) label = KIND_AR[kind] || kind;
   if(s.nav) label = "↩ " + label;
   if(dead) label = (archive ? "⟲ " : "✕ ") + label;
   a.append(el("span","lab", label));
@@ -1033,24 +1035,36 @@ function viewTopics(counts){
        cannot read as belonging to "الامامي". */
     const srcs = el("div","srcs"), CAP = 8;
     const titled = s => (s.label || "").length > 2 && !/^[\s>*«»·،,.\d]+$/.test(s.label);
+    /* "فل", "م3", "جدة" are labels, not markers — only symbols and digits get a pill */
+    const isMarker = s => !(s.label || "").trim() || /^[\s>*«»·،,.\d↗]+$/.test(s.label.trim());
     const groups = [];
     let g = null;
-    t.sources.forEach(s => {
+    t.sources.forEach((s, i) => {
       const cap = s.g || null;
-      if(!g || titled(s) || cap !== g.cap){
-        g = {cap, head: titled(s) ? s : null, items: []};
+      // a titled source heads a cluster only when numbers hang off it; otherwise it is
+      // just another labelled source sitting alongside its siblings
+      const nxt = t.sources[i + 1];
+      const owns = titled(s) && !!nxt && isMarker(nxt);
+      if(!g || owns || cap !== g.cap){
+        g = {cap, head: owns ? s : null, items: []};
         groups.push(g);
         if(g.head) return;
       }
       g.items.push(s);
     });
     const renderGroup = grp => {
-      // a source with nothing hanging off it needs no cluster around it
-      if(grp.head && !grp.cap && !grp.items.length) return srcLink(grp.head, 0, t.name);
+      // a lone source needs no cluster around it, with or without a head
+      if(!grp.cap && !grp.items.length && grp.head) return srcLink(grp.head, 0, t.name);
+      if(!grp.cap && !grp.head && grp.items.length === 1)
+        return srcLink(grp.items[0], 0, t.name);
       const box = el("div", "grp" + (grp.head ? "" : " capgrp"));
       if(grp.cap) box.append(el("span","cap", grp.cap));
       if(grp.head) box.append(srcLink(grp.head, 0, t.name));
-      grp.items.forEach((s, i) => box.append(markerChip(s, i + 1, t.name)));
+      let n = 0;
+      grp.items.forEach(s => {
+        if(isMarker(s)) box.append(markerChip(s, ++n, t.name));
+        else box.append(srcLink(s, n, t.name));      // a named label keeps its words
+      });
       return box;
     };
     let shown = 0, cut = groups.length;
