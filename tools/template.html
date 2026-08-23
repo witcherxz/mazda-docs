@@ -146,6 +146,9 @@ main{max-width:1180px;margin:0 auto;padding:20px 20px 80px}
 .letters button{min-width:29px;height:29px;border:1px solid var(--rule);border-radius:3px;font-size:13.5px;
   color:var(--ink-2);background:var(--surface)}
 .letters button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.loadmore{display:block;width:100%;margin-top:12px;padding:11px;border:1px dashed var(--rule-strong);
+  border-radius:4px;color:var(--ink-2);background:var(--surface);font-size:14px}
+.loadmore:hover{border-color:var(--accent);color:var(--accent)}
 .topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:10px}
 .topic{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;
   display:flex;flex-direction:column;gap:9px;min-width:0}
@@ -599,7 +602,7 @@ function renderRuns(o, ts, tag){
 const state = {tab:"topics", q:"", models:new Set(), engines:new Set(), kinds:new Set(),
   docs:new Set(), year:"", letter:"", sort:"rel", cursor:0, artId:null, artBlock:null,
   showFilters: window.matchMedia("(min-width: 701px)").matches, showLegend: false, yearRaw:"",
-  focusTopic: null};
+  focusTopic: null, limit: 400, limitKey: null};
 
 function terms(){
   const q = norm(state.q);
@@ -953,8 +956,12 @@ function viewTopics(counts){
   state.cursor = Math.max(0, Math.min(state.cursor, list.length - 1));
   window._list = list;
 
+  /* Browsing the whole index used to stop dead at 400 cards, which looked like the rest
+     of the guide was missing. Show more on demand instead. */
+  const key = filterKey() + "|" + state.sort;
+  if(state.limitKey !== key){ state.limit = 400; state.limitKey = key; }
   const grid = el("div","topics");
-  list.slice(0, 400).forEach((t, i) => {
+  list.slice(0, state.limit).forEach((t, i) => {
     const c = el("div","topic" + (i === state.cursor && ts.length ? " cur" : "")
                           + (t.id === state.focusTopic ? " cur" : ""));
     if(i === state.cursor && ts.length) c.id = "cursor";
@@ -1000,6 +1007,20 @@ function viewTopics(counts){
     grid.append(c);
   });
   wrap.append(grid);
+  if(list.length > state.limit){
+    const rest = list.length - state.limit;
+    const more = el("button","loadmore", `عرض المزيد — ${rest} موضوع متبقٍ`);
+    more.onclick = () => { state.limit += 400; render(); };
+    wrap.append(more);
+    /* and load the next page by itself when the button scrolls into view */
+    requestAnimationFrame(() => {
+      if(!("IntersectionObserver" in window)) return;
+      const io = new IntersectionObserver(entries => {
+        if(entries.some(e => e.isIntersecting)){ io.disconnect(); more.click(); }
+      }, {rootMargin: "400px"});
+      io.observe(more);
+    });
+  }
   if(!list.length) wrap.append(elsewhere(counts));
 
   $("#count").textContent = "";
@@ -1010,7 +1031,8 @@ function viewTopics(counts){
   }
   $("#count").append(el("span",null,`${list.length} موضوع`),
     el("span",null,`${list.reduce((n,t)=>n+t.n,0)} مصدر`));
-  if(list.length > 400) $("#count").append(el("span",null,"يُعرض أول 400"));
+  if(list.length > state.limit)
+    $("#count").append(el("span",null,`معروض ${state.limit}`));
   return wrap;
 }
 function viewSched(counts){
