@@ -193,7 +193,10 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .grp .src{border-color:transparent;background:none;padding:2px 5px;font-weight:500}
 .grp .src:hover{border-color:currentColor}
 .grp .src .dot{display:none}        /* the label already carries the kind colour */
-.grp .mk{background:var(--surface);min-width:20px;height:19px}
+/* outlined in the source colour: the grey fill fought the cluster's own background */
+.grp .mk{background:none;min-width:20px;height:19px;
+  border-color:color-mix(in srgb, var(--k, var(--ink-3)) 45%, transparent)}
+.grp .mk:hover{border-color:currentColor}
 .grp .mk .lab{max-width:none}
 .grp.capgrp{border-style:dashed}
 .cap{font-size:11.5px;color:var(--ink-3);padding:0 4px;line-height:1.5}
