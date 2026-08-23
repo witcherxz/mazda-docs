@@ -68,7 +68,7 @@ The topic label is not plain text next to a link — it is the anchor text itsel
 `[ارتفاع الحرارة](docs.google.com/…)`, `[الاستبنة](docs.google.com/…)`, `[استدعاء واصلاحات مازدا](mazdaproblems.com/tsbs)`.
 **Caveat that breaks naïve parsers:** Google Docs splits one anchor into multiple `w:hyperlink` elements whenever formatting changes mid-link, so "انوار م3 كاملة" arrives as three separate links. Merging consecutive hyperlinks that share a target collapses 17,315 raw runs into 6,713 real links and fixes the names. This single rule is the difference between garbage output and clean output.
 
-### Pattern C — `>1>2>3` = alternate sources, same topic (reliability: high)
+### Pattern C — `>` `او` `=` chain, `,` separates (reliability: high)
 `الشاشة تضغط من نفسها>1>2>3>4>5>6>7>8`. A link whose text is only a number, `*`, or `>` is *another source for the preceding named topic*, ordered roughly best-first. This is the community's own ranking signal — it maps directly onto a `sources[]` array with a `rank`.
 
 ### Pattern D — the maintenance interval matrix (reliability: high)

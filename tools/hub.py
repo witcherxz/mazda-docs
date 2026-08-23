@@ -8,6 +8,9 @@ from common import (AR_DIGITS, HUB, classify, facets, norm_ar, normalize_url,
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 SPLIT = re.compile(r"[,،()]")
+# ">" and "او" chain alternatives onto the phrase before them: "x>y" and "x او y" are one
+# topic with two sources, while a comma starts a new one.
+CONNECTOR = re.compile(r"^[\s>‹›«»<=+\\/\-–—*.:؛]*(او|أو)?[\s>‹›«»<=+\\/\-–—*.:؛]*$")
 
 
 def rtext(el):
@@ -64,7 +67,7 @@ def extract_topics(tbl, rels, anchors=None):
             if len(plain) <= 4 and not any(t[0] == "L" for t in flat):
                 letter = plain                      # section letter: أ ب ت … / A-Z
                 continue
-            cur, ctx, last = None, "", None
+            cur, ctx, last, chained, synonym = None, "", None, False, False
             if anchors is not None:
                 for p in tc.findall(W + "p"):
                     for b in p.iter(W + "bookmarkStart"):
@@ -75,16 +78,32 @@ def extract_topics(tbl, rels, anchors=None):
                 if kind == "T":
                     ctx = text
                     if SPLIT.search(text):
-                        cur = None                  # separator closes the group
+                        cur = None                  # a comma or bracket closes the group
+                        chained = False
+                    else:
+                        chained = bool(CONNECTOR.match(text))
+                        synonym = chained and "=" in text
                     continue
                 if cur is None and not real_name(text):
                     if last is not None:            # stray marker -> previous topic
                         last["sources"].append({"label": text.strip() or "↗", "url": url,
                                                 "kind": classify(url)})
                     continue
+                if chained and cur is not None:
+                    # "تصفية = تفتفه = تذبذب" names one thing three times: keep every spelling
+                    # in the name so any of them finds it. Only while the chain has been
+                    # nothing but "=" — once a ">" source lands, later "=" belong to it.
+                    if synonym and real_name(text) and cur.get("syn_chain"):
+                        cur["name"] = f'{cur["name"]} = {text.strip(" >*,،=")}'
+                    else:
+                        cur["syn_chain"] = False
+                    cur["sources"].append({"label": text.strip() or "↗", "url": url,
+                                           "kind": classify(url)})
+                    chained = synonym = False
+                    continue
                 if cur is None or real_name(text):
                     cur = {"id": slug(text), "letter": letter, "name": text.strip(" >*,،"),
-                           "note": ctx.strip(" ,،()>*")[:80], "sources": []}
+                           "note": ctx.strip(" ,،()>*")[:80], "sources": [], "syn_chain": True}
                     topics.append(cur)
                     last = cur
                     if anchors is not None:      # first topic in the cell owns its bookmarks
@@ -106,6 +125,7 @@ def extract_topics(tbl, rels, anchors=None):
     out = []
     for t in merged.values():
         blob = t["name"] + " " + t["note"] + " " + " ".join(s["label"] for s in t["sources"])
+        t.pop("syn_chain", None)
         out.append({**t, "norm": norm_ar(t["name"]), "snorm": norm_ar(blob),
                     "f": facets(t["name"] + " " + t["note"]),
                     "kinds": sorted({s["kind"] for s in t["sources"]}),

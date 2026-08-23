@@ -90,6 +90,68 @@ class HyperlinkMerging(unittest.TestCase):
         self.assertEqual(hub.tokens(p, {})[0][2], "#kix.abc")
 
 
+class TopicGrouping(unittest.TestCase):
+    """The index cell's punctuation carries meaning: "," starts a new topic, while
+    ">", "او" and "=" chain onto the one before."""
+
+    def cell(self, parts):
+        """parts: list of ("T", text) | ("L", label, rel-id) -> a one-cell table."""
+        runs = []
+        for part in parts:
+            if part[0] == "T":
+                runs.append(f'<w:r><w:t xml:space="preserve">{part[1]}</w:t></w:r>')
+            else:
+                runs.append(f'<w:hyperlink r:id="{part[2]}"><w:r>'
+                            f'<w:t xml:space="preserve">{part[1]}</w:t></w:r></w:hyperlink>')
+        xml = (f'<w:tbl {NS}><w:tr><w:tc><w:p>{"".join(runs)}</w:p></w:tc></w:tr></w:tbl>')
+        rels = {f"r{i}": f"https://e.com/{i}" for i in range(1, 12)}
+        return hub.extract_topics(ET.fromstring(xml), rels)
+
+    def test_comma_starts_a_new_topic(self):
+        topics = self.cell([("L", "الزجاج الجانبي", "r1"), ("T", " , "),
+                            ("L", "بطارية السيارة", "r2")])
+        self.assertEqual([t["name"] for t in topics], ["الزجاج الجانبي", "بطارية السيارة"])
+
+    def test_angle_chains_onto_the_topic_before_it(self):
+        topics = self.cell([("L", "اختيار سيارة", "r1"), ("T", ">"),
+                            ("L", "اسعار قطع الغيار", "r2"), ("T", ">"),
+                            ("L", "اسعار سيارات مازدا", "r3")])
+        self.assertEqual(len(topics), 1)
+        self.assertEqual(topics[0]["name"], "اختيار سيارة")
+        self.assertEqual([s["label"] for s in topics[0]["sources"]],
+                         ["اختيار سيارة", "اسعار قطع الغيار", "اسعار سيارات مازدا"])
+
+    def test_arabic_or_chains_like_an_angle(self):
+        topics = self.cell([("L", "ثقل عزم السيارة", "r1"), ("T", " او "),
+                            ("L", "ضعف التسارع", "r2")])
+        self.assertEqual(len(topics), 1)
+        self.assertEqual(topics[0]["n"], 2)
+
+    def test_equals_keeps_every_spelling_in_the_name(self):
+        topics = self.cell([("L", "تصفية", "r1"), ("T", " = "), ("L", "تفتفه", "r2"),
+                            ("T", "= "), ("L", "تذبذب دورات المحرك", "r3")])
+        self.assertEqual(len(topics), 1)
+        self.assertEqual(topics[0]["name"], "تصفية = تفتفه = تذبذب دورات المحرك")
+
+    def test_a_chain_after_a_source_does_not_extend_the_name(self):
+        topics = self.cell([("L", "الاصطب مكسور", "r1"), ("T", ">"), ("L", "الرياض", "r2"),
+                            ("T", ">"), ("L", "م3", "r3"), ("T", "="), ("L", "تجاري", "r4")])
+        self.assertEqual(topics[0]["name"], "الاصطب مكسور")
+
+    def test_bracket_closes_the_group_like_a_comma(self):
+        topics = self.cell([("T", "("), ("L", "حادث بالمقدمة", "r1"), ("T", ">"),
+                            ("L", "الصدام الامامي", "r2"), ("T", ") , "),
+                            ("L", "حرارة المكينة", "r3")])
+        self.assertEqual([t["name"] for t in topics], ["حادث بالمقدمة", "حرارة المكينة"])
+        self.assertEqual(topics[0]["n"], 2)
+
+    def test_markers_still_attach_as_extra_sources(self):
+        topics = self.cell([("L", "الشاشة تضغط من نفسها", "r1"), ("T", ">"), ("L", "2", "r2"),
+                            ("T", ">"), ("L", "3", "r3")])
+        self.assertEqual(len(topics), 1)
+        self.assertEqual(topics[0]["n"], 3)
+
+
 class Intervals(unittest.TestCase):
     def test_kilometre_forms(self):
         cases = {"الصيانة الاولى لأول 1,000 كيلو او 6 اشهر": (1000, 6),
@@ -229,7 +291,9 @@ class RealDocument(unittest.TestCase):
             cls.parsed = hub.parse(fh.read())
 
     def test_topic_and_link_volume(self):
-        self.assertGreater(len(self.parsed["topics"]), 800)
+        # chained alternatives fold into their parent, so this floor sits below the
+        # raw count of named links
+        self.assertGreater(len(self.parsed["topics"]), 550)
         self.assertGreater(len(self.parsed["links"]), 6000)
 
     def test_every_topic_has_at_least_one_source(self):
