@@ -497,7 +497,12 @@ function linkNode(r, ts, num){
   a.title = dead ? (archive ? "الرابط الأصلي معطّل — يفتح نسخة من الأرشيف" : "الرابط معطّل")
                  : `${KIND_AR[kind]||kind} — ${r.u}`;
   if(r.nav) applyNav(a, r.nav);
-  if(num){ a.textContent = String(num); a.title = `مصدر ${num} — ${r.u}`; }
+  if(num){
+    const own = (r.t || "").match(/\d+/);
+    const shown = own ? own[0] : String(num);
+    a.textContent = shown;
+    a.title = `مصدر ${shown} — ${r.u}`;
+  }
   else a.append(highlightWords(r.t, ts));
   return a;
 }
@@ -931,7 +936,11 @@ function srcLink(s, i, topicName){
     : `${KIND_AR[kind]||kind} — ${s.url}`;
   if(s.nav) applyNav(a, s.nav);
   a.append(el("span","dot"));
-  let label = (s.label && s.label.length > 1 && !/^[\s>*]+$/.test(s.label)) ? s.label : String(i+1);
+  /* the doc numbers a titled source's own links from 1 again, so keep its digits rather
+     than a running index — "الخلفي>2>3" is 2 and 3, not 6 and 7 */
+  const own = (s.label || "").match(/\d+/);
+  let label = (s.label && s.label.length > 1 && !/^[\s>*]+$/.test(s.label)) ? s.label
+            : (own ? own[0] : String(i));
   if(topicName && norm(label) === norm(topicName)) label = KIND_AR[kind] || kind;
   if(s.nav) label = "↩ " + label;
   if(dead) label = (archive ? "⟲ " : "✕ ") + label;
@@ -999,13 +1008,16 @@ function viewTopics(counts){
     if(tags.children.length) c.append(tags);
     const srcs = el("div","srcs"), CAP = 8;
     /* the doc captions a run of numbered sources with plain text — keep that grouping */
-    let lastCap = null;
+    let lastCap = null, groupN = 0;
+    const titled = s => (s.label || "").length > 2 && !/^[\s>*«»·،,.\d]+$/.test(s.label);
     const addSource = (s, i2) => {
       if((s.g || null) !== lastCap){
         lastCap = s.g || null;
+        groupN = 0;
         if(s.g) srcs.append(el("span","cap", s.g));
       }
-      srcs.append(srcLink(s, i2, t.name));
+      if(titled(s)) groupN = 0; else groupN += 1;
+      srcs.append(srcLink(s, groupN, t.name));
     };
     t.sources.slice(0, CAP).forEach(addSource);
     if(t.sources.length > CAP){
