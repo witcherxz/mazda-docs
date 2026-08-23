@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS link(
 CREATE TABLE IF NOT EXISTS change(
   id INTEGER PRIMARY KEY AUTOINCREMENT, run_at TEXT, entity TEXT,
   entity_id TEXT, field TEXT, before TEXT, after TEXT, label TEXT);
+CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS run(
   id INTEGER PRIMARY KEY AUTOINCREMENT, started_at TEXT, finished_at TEXT,
   sha TEXT, topics INTEGER, sources INTEGER, links INTEGER,
@@ -63,16 +64,32 @@ def connect(path=DB_PATH):
     return db
 
 
+def meta(db, key, default=None):
+    row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+    return row["value"] if row else default
+
+
+def set_meta(db, key, value):
+    db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (key, str(value)))
+
+
 class Sync:
     """One pipeline run: diff the incoming snapshot against the stored one."""
 
-    def __init__(self, db):
+    def __init__(self, db, parse_version="1"):
         self.db = db
         self.at = now()
         self.changes = []
-        self.bootstrap = db.execute("SELECT COUNT(*) c FROM topic").fetchone()["c"] == 0
+        empty = db.execute("SELECT COUNT(*) c FROM topic").fetchone()["c"] == 0
+        # A parser change re-cuts every topic; that is our doing, not the community's,
+        # so the first run on a new version re-baselines instead of reporting churn.
+        self.reparsed = meta(db, "parse_version") not in (None, str(parse_version)) 
+        self.bootstrap = empty or self.reparsed
+        set_meta(db, "parse_version", parse_version)
 
     def log(self, entity, entity_id, field, before, after, label=""):
+        if self.bootstrap:          # first run, or a re-baseline after a parser change
+            return
         self.changes.append({"entity": entity, "id": entity_id, "field": field,
                              "before": before, "after": after, "label": label,
                              "at": self.at})
@@ -82,8 +99,7 @@ class Sync:
         for d in docs:
             row = self.db.execute("SELECT * FROM doc WHERE id=?", (d["id"],)).fetchone()
             if row is None:
-                if not self.bootstrap:
-                    self.log("doc", d["id"], "added", None, d["title"], d["title"])
+                self.log("doc", d["id"], "added", None, d["title"], d["title"])
                 self.db.execute(
                     "INSERT INTO doc(id,kind,title,sha,bytes,topics,links,first_seen,last_seen)"
                     " VALUES(?,?,?,?,?,?,?,?,?)",
@@ -108,8 +124,7 @@ class Sync:
             seen.add(t["id"])
             prev = old.get(t["id"])
             if prev is None:
-                if not self.bootstrap:      # first run would log every topic as new
-                    self.log("topic", t["id"], "added", None, t["name"], t["name"])
+                self.log("topic", t["id"], "added", None, t["name"], t["name"])
                 self.db.execute(
                     "INSERT INTO topic(id,doc_id,name,letter,note,norm,facets,n_sources,"
                     "first_seen,last_seen,status) VALUES(?,?,?,?,?,?,?,?,?,?,'live')",
@@ -146,9 +161,8 @@ class Sync:
                                ensure_ascii=False)
             prev = old.get(iv["interval"])
             if prev is None:
-                if not self.bootstrap:
-                    self.log("interval", str(iv.get("km") or i), "added", None,
-                             iv["interval"], iv["interval"])
+                self.log("interval", str(iv.get("km") or i), "added", None,
+                         iv["interval"], iv["interval"])
             elif prev["items"] != items:
                 self.log("interval", str(iv.get("km") or i), "items",
                          f'{len(json.loads(prev["items"])["replace"])} بند',
@@ -163,8 +177,7 @@ class Sync:
         for a in articles:
             prev = old.get(a["id"])
             if prev is None:
-                if not self.bootstrap:
-                    self.log("article", a["id"], "added", None, a["title"], a["title"])
+                self.log("article", a["id"], "added", None, a["title"], a["title"])
                 self.db.execute(
                     "INSERT INTO article(id,title,chars,nlinks,first_seen,last_seen)"
                     " VALUES(?,?,?,?,?,?)",
@@ -206,7 +219,8 @@ class Sync:
             "INSERT INTO run(started_at,finished_at,sha,topics,sources,links,docs,changes,ok,note)"
             " VALUES(?,?,?,?,?,?,?,?,?,?)",
             (self.at, now(), stats.get("sha"), stats.get("topics"), stats.get("sources"),
-             stats.get("links"), stats.get("docs"), len(self.changes), int(ok), note))
+             stats.get("links"), stats.get("docs"), len(self.changes), int(ok),
+             (note + "; re-baselined after a parser change") if self.reparsed else note))
         self.db.commit()
         return self.changes
 

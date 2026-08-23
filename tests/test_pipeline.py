@@ -297,6 +297,23 @@ class Store(unittest.TestCase):
         self.assertIn(("topic", "b", "removed"), fields)
         self.assertIn(("topic", "c", "added"), fields)
 
+    def test_a_parser_change_re_baselines_instead_of_reporting_churn(self):
+        """Re-cutting every topic is our doing, not a community edit."""
+        first = store.Sync(self.db, "1")
+        first.topics([self.topic("a", "بواجي"), self.topic("b", "زيت")])
+        first.commit({"sha": "x"})
+
+        bumped = store.Sync(self.db, "2")
+        bumped.topics([self.topic("c", "فلتر")])       # nothing in common with before
+        self.assertTrue(bumped.reparsed)
+        self.assertEqual(bumped.changes, [])
+        bumped.commit({"sha": "y"})
+
+        after = store.Sync(self.db, "2")
+        after.topics([self.topic("c", "فلتر"), self.topic("d", "بوجي")])
+        self.assertFalse(after.reparsed)
+        self.assertEqual([c["field"] for c in after.changes], ["added"])
+
     def test_removed_topic_is_marked_gone_not_deleted(self):
         first = store.Sync(self.db)
         first.topics([self.topic("a", "بواجي")])

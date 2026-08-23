@@ -190,9 +190,11 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .src .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:20ch}
 .grp{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px;max-width:100%;
   padding:2px 3px;border:1px solid var(--rule);border-radius:5px;background:var(--surface-2)}
-.grp .src{border-color:transparent;background:none;padding:2px 5px}
+.grp .src{border-color:transparent;background:none;padding:2px 5px;font-weight:500}
 .grp .src:hover{border-color:currentColor}
-.grp .mk{background:var(--surface)}
+.grp .src .dot{display:none}        /* the label already carries the kind colour */
+.grp .mk{background:var(--surface);min-width:20px;height:19px}
+.grp .mk .lab{max-width:none}
 .grp.capgrp{border-style:dashed}
 .cap{font-size:11.5px;color:var(--ink-3);padding:0 4px;line-height:1.5}
 .src.more{color:var(--ink-3);cursor:pointer}
@@ -953,6 +955,17 @@ function srcLink(s, i, topicName){
   a.append(el("span","lab", label));
   return a;
 }
+/* Inside a cluster the chips have no border of their own, so a dot per chip reads as
+   noise. Members become small numbered pills whose colour already names the source kind. */
+function markerChip(s, num, topicName){
+  const a = srcLink(s, num, topicName);
+  a.classList.remove("src");
+  a.classList.add("mk");
+  const dot = a.querySelector(".dot");
+  if(dot) dot.remove();
+  return a;
+}
+
 function chipLetter(label, L){
   const b = el("button", null, label);
   b.setAttribute("aria-pressed", state.letter === L ? "true":"false");
@@ -1034,7 +1047,7 @@ function viewTopics(counts){
       const box = el("div", "grp" + (grp.head ? "" : " capgrp"));
       if(grp.cap) box.append(el("span","cap", grp.cap));
       if(grp.head) box.append(srcLink(grp.head, 0, t.name));
-      grp.items.forEach((s, i) => box.append(srcLink(s, i + 1, t.name)));
+      grp.items.forEach((s, i) => box.append(markerChip(s, i + 1, t.name)));
       return box;
     };
     let shown = 0, cut = groups.length;

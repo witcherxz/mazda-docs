@@ -16,6 +16,9 @@ from common import DOCX, HUB, ROOT, fetch, gdoc_id
 SNAPSHOT = os.path.join(ROOT, "دليل صيانة مازدا.docx")
 BUILD = os.path.join(ROOT, "build")
 HISTORY = os.path.join(ROOT, "data", "history.jsonl")
+# bump when a parse rule changes how topics are cut, so the next run re-baselines
+# instead of reporting our own refactor as community edits
+PARSE_VERSION = "2"
 
 
 def append_history(entry, path=HISTORY, keep_changes=200):  # noqa: D401
@@ -172,7 +175,7 @@ def main():
         src = store.connect(args.db)          # diff against the real state, discard writes
         src.backup(db)
         src.close()
-    sync = store.Sync(db)
+    sync = store.Sync(db, PARSE_VERSION)
     sync.docs([{"id": "hub", "kind": "hub", "title": "دليل صيانة مازدا", "sha": doc_sha,
                 "bytes": len(raw), "topics": len(parsed["topics"]),
                 "links": len(parsed["links"])}] +
@@ -188,6 +191,8 @@ def main():
              "docs": 1 + len(sats)}
     changes = sync.commit(stats, ok=not sat_errors,
                           note=f"{origin}; {len(sat_errors)} satellite errors")
+    if sync.reparsed:
+        print("  parser version changed — re-baselined, no changes reported")
     print(f"  {len(changes)} changes recorded")
 
     if args.linkcheck:
