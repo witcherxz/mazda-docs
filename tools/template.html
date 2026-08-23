@@ -187,6 +187,8 @@ mark.w{background:var(--accent-bg);color:var(--ink);border-radius:2px;padding:0 
 .src:hover{border-color:currentColor;text-decoration:none}
 .src .dot{width:6px;height:6px;border-radius:50%;flex:none;background:currentColor}
 .src .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:20ch}
+.cap{flex-basis:100%;font-size:11.5px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+.cap::before{content:"↳ ";opacity:.7}
 .src.more{color:var(--ink-3);cursor:pointer}
 .src.more:hover{color:var(--accent)}
 .src.nav{border-style:dashed}
@@ -996,11 +998,20 @@ function viewTopics(counts){
     }
     if(tags.children.length) c.append(tags);
     const srcs = el("div","srcs"), CAP = 8;
-    t.sources.slice(0, CAP).forEach((s,i2) => srcs.append(srcLink(s, i2, t.name)));
+    /* the doc captions a run of numbered sources with plain text — keep that grouping */
+    let lastCap = null;
+    const addSource = (s, i2) => {
+      if((s.g || null) !== lastCap){
+        lastCap = s.g || null;
+        if(s.g) srcs.append(el("span","cap", s.g));
+      }
+      srcs.append(srcLink(s, i2, t.name));
+    };
+    t.sources.slice(0, CAP).forEach(addSource);
     if(t.sources.length > CAP){
       const more = el("button","src more", `+${t.sources.length - CAP} مصدر`);
       more.onclick = () => { more.remove();
-        t.sources.slice(CAP).forEach((s,i2) => srcs.append(srcLink(s, i2 + CAP, t.name))); };
+        t.sources.slice(CAP).forEach((s, i2) => addSource(s, i2 + CAP)); };
       srcs.append(more);
     }
     c.append(srcs);

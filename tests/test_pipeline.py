@@ -161,6 +161,27 @@ class TopicGrouping(unittest.TestCase):
         self.assertCountEqual([t["name"] for t in topics],
                               ["بطارية السيارة", "ابعاد السيارة"])
 
+    def test_plain_text_mid_chain_captions_the_markers_after_it(self):
+        """">شروط وأحكام التأمين>0>1" describes the numbers, it does not start a topic."""
+        topics = self.cell([("L", "تأمين السيارات ضد الغير", "r1"), ("T", ">"),
+                            ("L", "1", "r2"), ("T", ">شروط وأحكام التأمين>"),
+                            ("L", "0", "r3"), ("T", ">"), ("L", "1", "r4")])
+        self.assertEqual([t["name"] for t in topics], ["تأمين السيارات ضد الغير"])
+        captions = [s.get("g") for s in topics[0]["sources"]]
+        self.assertEqual(captions, [None, None, "شروط وأحكام التأمين", "شروط وأحكام التأمين"])
+
+    def test_a_titled_source_ends_the_caption(self):
+        topics = self.cell([("L", "تأمين", "r1"), ("T", ">شروط وأحكام>"), ("L", "1", "r2"),
+                            ("T", ">"), ("L", "للاعتراض على التقدير", "r3")])
+        self.assertEqual([s.get("g") for s in topics[0]["sources"]],
+                         [None, "شروط وأحكام", None])
+
+    def test_a_separator_before_the_phrase_still_starts_a_topic(self):
+        topics = self.cell([("L", "باقي المدن", "r1"), ("T", ") الفحص الدوري للمرور>"),
+                            ("L", "1", "r2")])
+        self.assertCountEqual([t["name"] for t in topics],
+                              ["باقي المدن", "الفحص الدوري للمرور"])
+
     def test_markers_still_attach_as_extra_sources(self):
         topics = self.cell([("L", "الشاشة تضغط من نفسها", "r1"), ("T", ">"), ("L", "2", "r2"),
                             ("T", ">"), ("L", "3", "r3")])
