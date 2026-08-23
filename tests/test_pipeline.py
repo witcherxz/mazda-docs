@@ -330,6 +330,53 @@ class Store(unittest.TestCase):
         self.assertEqual(row["status"], "gone")
 
 
+class StaticPages(unittest.TestCase):
+    """Search engines ignore hash fragments, so every topic needs a real URL."""
+
+    DATA = {
+        "source": "https://docs.google.com/document/d/X/edit",
+        "built_at": "2026-08-24T00:00:00Z",
+        "topics": [{"id": "abc123", "name": "فتحة السقف ماتنزل", "letter": "ف", "doc": "hub",
+                    "note": "", "n": 2, "f": {"models": ["mazda3"], "years": [[2019, 2025]]},
+                    "sources": [{"label": "شرح", "url": "https://t.me/x/1", "kind": "telegram"},
+                                {"label": "2", "url": "https://youtu.be/y", "kind": "youtube"}]}],
+        "articles": [{"id": "art1", "title": "الريموت: الأعراض والحلول", "norm": "الريموت",
+                      "blocks": [{"t": "حل مؤقت لفتح الأبواب", "runs": []}]}],
+        "docs": [{"id": "DOCID9999", "title": "قطع الغيار", "topics": 5, "links": 9,
+                  "chars": 100, "sections": [{"title": "مصادر الشراء"}],
+                  "url": "https://docs.google.com/document/d/DOCID9999/edit", "f": {}}],
+        "schedule": [],
+    }
+
+    def setUp(self):
+        import tempfile
+        self.dist = tempfile.mkdtemp()
+        import pages
+        self.written, self.listed = pages.build(self.DATA, self.dist)
+
+    def read(self, path):
+        with open(os.path.join(self.dist, path, "index.html"), encoding="utf-8") as fh:
+            return fh.read()
+
+    def test_a_page_exists_for_the_topic_the_article_the_doc_and_the_letter(self):
+        self.assertEqual(self.written, 4)
+        self.assertEqual(self.listed, 4)
+
+    def test_the_topic_page_carries_its_own_title_and_canonical(self):
+        import pages
+        html = self.read("t/" + pages.slug("فتحة السقف ماتنزل", "abc123"))
+        self.assertIn("<title>فتحة السقف ماتنزل — دليل مازدا</title>", html)
+        self.assertIn('rel="canonical"', html)
+        self.assertIn("https://t.me/x/1", html)          # its sources are in the markup
+        self.assertIn("#topic=abc123", html)             # and it links into the app
+
+    def test_the_sitemap_lists_every_page(self):
+        with open(os.path.join(self.dist, "sitemap.xml"), encoding="utf-8") as fh:
+            xml = fh.read()
+        self.assertEqual(xml.count("<loc>"), 5)          # four pages plus the home page
+        self.assertIn("<lastmod>2026-08-24</lastmod>", xml)
+
+
 class Render(unittest.TestCase):
     def test_compact_drops_derivable_fields(self):
         data = {"topics": [{"name": "بواجي", "norm": "بواجي", "snorm": "x" * 400,

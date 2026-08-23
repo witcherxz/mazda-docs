@@ -89,6 +89,27 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
 
     os.makedirs(dist, exist_ok=True)
     shell = tpl.replace("/*__DATA__*/null", "null")
+
+    import pages                            # a crawlable page per topic, plus the sitemap
+    written, listed = pages.build(data, dist)
+    print(f"→ pages {written} static pages, {listed} URLs in the sitemap")
+
+    # the app renders through JavaScript, so give crawlers real links to follow
+    letters = sorted({t.get("letter") for t in data["topics"]
+                      if t.get("doc") == "hub" and t.get("letter")})
+    crawl = (
+        '<nav id="crawl" dir="rtl"><h2>تصفّح الفهرس</h2><div class="row">'
+        + "".join(f'<a href="{SITE_URL}l/{pages.slug(l, "idx")}/">{l}</a>' for l in letters)
+        + '</div><h2>المستندات</h2><div class="row">'
+        + "".join(f'<a href="{SITE_URL}d/{pages.slug(d["title"], d["id"][:8])}/">'
+                  f'{d["title"]}</a>' for d in data.get("docs", [])[:24])
+        + '</div></nav>'
+        '<style>#crawl{max-width:1180px;margin:0 auto;padding:22px 20px 40px;'
+        'font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;color:#848D98}'
+        '#crawl h2{font-size:13px;font-weight:600;margin:14px 0 8px}'
+        '#crawl .row{display:flex;flex-wrap:wrap;gap:6px}'
+        '#crawl a{font-size:13px;padding:3px 9px;border:1px solid #2C3238;border-radius:4px;'
+        'color:#8DBBD2;text-decoration:none}</style>')
     page = ('<!doctype html><html lang="ar" dir="rtl"><head>'
             '<meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -109,17 +130,12 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
             '<link rel="icon" href="data:image/svg+xml,'
             '%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E'
             '%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%9A%97%3C/text%3E%3C/svg%3E">'
-            '</head><body>' + shell + "</body></html>")
+            '</head><body>' + shell + crawl + "</body></html>")
     open(os.path.join(dist, "index.html"), "w", encoding="utf-8").write(page)
     open(os.path.join(dist, "data.json"), "w", encoding="utf-8").write(payload)
     open(os.path.join(dist, "CNAME"), "w", encoding="utf-8").write(DOMAIN + "\n")
     open(os.path.join(dist, "robots.txt"), "w", encoding="utf-8").write(
         f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}sitemap.xml\n")
-    open(os.path.join(dist, "sitemap.xml"), "w", encoding="utf-8").write(
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        f'  <url><loc>{SITE_URL}</loc><changefreq>daily</changefreq></url>\n'
-        '</urlset>\n')
     open(os.path.join(dist, "sw.js"), "w", encoding="utf-8").write(SERVICE_WORKER)
     open(os.path.join(dist, "manifest.webmanifest"), "w", encoding="utf-8").write(
         json.dumps({"name": "دليل مازدا المنظم", "short_name": "دليل مازدا",

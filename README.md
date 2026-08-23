@@ -95,6 +95,13 @@ community reorders the index, and renames surface as changes instead of duplicat
 
 `build/mazda.db` is committed on purpose: it carries the history of what changed and when.
 
+## Search engines
+
+Every build also emits a static page per topic, article, document and index letter — 783
+crawlable URLs with their own titles and canonical links — plus `sitemap.xml` and a crawl nav
+on the home page. Without them the whole site would be a single indexable URL, since search
+engines ignore the hash fragments the app navigates with.
+
 ## Deploying
 
 Live at **[mazda-community.org](https://mazda-community.org/)**, rebuilt and republished daily

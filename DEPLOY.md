@@ -109,6 +109,29 @@ the hyperlink graph and table geometry, because formatting in the source doc is 
 `git revert` restores any previous day's dataset, and the `change` table explains what
 differed.
 
+## Search engines
+
+The app is one URL with its state in hash fragments, and search engines ignore fragments —
+so on its own only the home page could ever be indexed. Every build therefore also writes a
+static page per topic, article, document and index letter (783 pages today) under
+`/t/…`, `/a/…`, `/d/…`, `/l/…`, each with its own title, description, canonical URL and the
+sources in the markup, linking into the app for the interactive view. `sitemap.xml` lists
+them all, `robots.txt` points at it, and the deployed home page carries a crawlable nav of
+letter and document links so crawlers can walk the index without the sitemap.
+
+To get them indexed:
+
+1. **Google Search Console** → Add property → Domain → `mazda-community.org`. Verify with the
+   DNS TXT record it gives you (Cloudflare → DNS → Add record → TXT).
+2. Sitemaps → submit `sitemap.xml`.
+3. URL Inspection on a couple of topic pages → *Request indexing*, to seed the crawl.
+4. Optional: the same at [Bing Webmaster Tools](https://www.bing.com/webmasters), which also
+   feeds DuckDuckGo; it can import the Search Console property directly.
+
+Expect days for the home page and weeks for the long tail. The pages that will actually pull
+search traffic are the symptom-shaped ones — "فتحة السقف ماتنزل", "تطفى المكينة فجأة" — which
+is exactly what someone types into Google.
+
 ## Before you publish it publicly
 
 The content belongs to the Saudi Mazda owners' community — [t.me/mzda6](https://t.me/mzda6)
