@@ -10,6 +10,7 @@ R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 SPLIT = re.compile(r"[,،()]")
 # ">" and "او" chain alternatives onto the phrase before them: "x>y" and "x او y" are one
 # topic with two sources, while a comma starts a new one.
+MARKER_ONLY = re.compile(r"^[\s>*«»·،,.\d]+$")
 CONNECTOR = re.compile(r"^[\s>‹›«»<=+\\/\-–—*.:؛]*(او|أو)?[\s>‹›«»<=+\\/\-–—*.:؛]*$")
 
 
@@ -68,13 +69,14 @@ def extract_topics(tbl, rels, anchors=None):
                 letter = plain                      # section letter: أ ب ت … / A-Z
                 continue
             cur, ctx, last, chained, synonym = None, "", None, False, False
+            flat_len = len(flat)
             if anchors is not None:
                 for p in tc.findall(W + "p"):
                     for b in p.iter(W + "bookmarkStart"):
                         name = b.get(W + "name")
                         if name:
                             anchors.setdefault(name, {"cell": id(tc)})
-            for kind, text, url in flat:
+            for pos, (kind, text, url) in enumerate(flat):
                 if kind == "T":
                     ctx = text
                     if SPLIT.search(text):
@@ -83,6 +85,19 @@ def extract_topics(tbl, rels, anchors=None):
                     else:
                         chained = bool(CONNECTOR.match(text))
                         synonym = chained and "=" in text
+                    # Some topics were never hyperlinked at all — the community wrote the
+                    # phrase as plain text and linked only its sources. If this run hands
+                    # straight over to marker links, its tail is a topic name.
+                    nxt = flat[pos + 1] if pos + 1 < flat_len else None
+                    if nxt and nxt[0] == "L" and MARKER_ONLY.match(nxt[1] or ""):
+                        tail = SPLIT.split(text)[-1].strip(" >*\t")
+                        if real_name(tail):
+                            cur = {"id": slug(tail), "letter": letter, "name": tail,
+                                   "note": ctx.strip(" ,،()>*")[:80], "sources": [],
+                                   "syn_chain": False}
+                            topics.append(cur)
+                            last = cur
+                            chained = synonym = False
                     continue
                 if cur is None and not real_name(text):
                     if last is not None:            # stray marker -> previous topic

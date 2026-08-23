@@ -63,9 +63,14 @@ These are the extraction handles, ranked by how reliable each is under community
 ### Pattern A — the alphabetical master index (reliability: high)
 Table 0 is a 28-row, 2-column grid: column 1 is an Arabic letter (أ ب ت ث … ي, then `A-Z`), column 2 is a dense run of topics for that letter. This is a real taxonomy the community already maintains. 3,453 links live here.
 
-### Pattern B — link text *is* the topic name (reliability: high)
+### Pattern B — link text *is* the topic name, except when it isn't (reliability: high)
 The topic label is not plain text next to a link — it is the anchor text itself:
 `[ارتفاع الحرارة](docs.google.com/…)`, `[الاستبنة](docs.google.com/…)`, `[استدعاء واصلاحات مازدا](mazdaproblems.com/tsbs)`.
+**58 topics were never hyperlinked at all** — the community wrote the phrase as plain text
+and linked only its sources: `الفحص الدوري للمرور>1>2>3>4>5`. A parser that reads only anchor
+text loses every one of them. When a plain run hands straight over to marker links, its tail
+(after the last comma or bracket) is the topic name.
+
 **Caveat that breaks naïve parsers:** Google Docs splits one anchor into multiple `w:hyperlink` elements whenever formatting changes mid-link, so "انوار م3 كاملة" arrives as three separate links. Merging consecutive hyperlinks that share a target collapses 17,315 raw runs into 6,713 real links and fixes the names. This single rule is the difference between garbage output and clean output.
 
 ### Pattern C — `>` `او` `=` chain, `,` separates (reliability: high)

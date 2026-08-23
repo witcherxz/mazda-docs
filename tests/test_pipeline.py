@@ -110,7 +110,9 @@ class TopicGrouping(unittest.TestCase):
     def test_comma_starts_a_new_topic(self):
         topics = self.cell([("L", "الزجاج الجانبي", "r1"), ("T", " , "),
                             ("L", "بطارية السيارة", "r2")])
-        self.assertEqual([t["name"] for t in topics], ["الزجاج الجانبي", "بطارية السيارة"])
+        # the extractor returns them alphabetised, so compare without order
+        self.assertCountEqual([t["name"] for t in topics],
+                              ["الزجاج الجانبي", "بطارية السيارة"])
 
     def test_angle_chains_onto_the_topic_before_it(self):
         topics = self.cell([("L", "اختيار سيارة", "r1"), ("T", ">"),
@@ -142,8 +144,22 @@ class TopicGrouping(unittest.TestCase):
         topics = self.cell([("T", "("), ("L", "حادث بالمقدمة", "r1"), ("T", ">"),
                             ("L", "الصدام الامامي", "r2"), ("T", ") , "),
                             ("L", "حرارة المكينة", "r3")])
-        self.assertEqual([t["name"] for t in topics], ["حادث بالمقدمة", "حرارة المكينة"])
+        self.assertCountEqual([t["name"] for t in topics], ["حادث بالمقدمة", "حرارة المكينة"])
         self.assertEqual(topics[0]["n"], 2)
+
+    def test_an_unlinked_phrase_owning_markers_becomes_a_topic(self):
+        """Some topics were never hyperlinked: the phrase is plain text and only its
+        sources carry links."""
+        topics = self.cell([("T", "الفحص الدوري للمرور>"), ("L", "1", "r1"),
+                            ("T", ">"), ("L", "2", "r2")])
+        self.assertEqual([t["name"] for t in topics], ["الفحص الدوري للمرور"])
+        self.assertEqual(topics[0]["n"], 2)
+
+    def test_only_the_tail_after_a_comma_becomes_the_name(self):
+        topics = self.cell([("L", "بطارية السيارة", "r1"), ("T", ", ابعاد السيارة>"),
+                            ("L", "1", "r2")])
+        self.assertCountEqual([t["name"] for t in topics],
+                              ["بطارية السيارة", "ابعاد السيارة"])
 
     def test_markers_still_attach_as_extra_sources(self):
         topics = self.cell([("L", "الشاشة تضغط من نفسها", "r1"), ("T", ">"), ("L", "2", "r2"),
