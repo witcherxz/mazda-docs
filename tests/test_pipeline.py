@@ -463,6 +463,47 @@ class SolutionPages(unittest.TestCase):
         self.assertIn('<span class="price">6 ريال</span>', html)
 
 
+class NotFoundPage(unittest.TestCase):
+    """A link mangled in a chat app still reaches its page through the ID at its end."""
+
+    def setUp(self):
+        import tempfile
+        import pages
+        self.pages = pages
+        self.dist = tempfile.mkdtemp()
+        pages.build(StaticPages.DATA, self.dist, drafts={})
+        with open(os.path.join(self.dist, "404.html"), encoding="utf-8") as fh:
+            self.html = fh.read()
+
+    def test_the_page_is_written_and_kept_out_of_search(self):
+        self.assertIn('<meta name="robots" content="noindex">', self.html)
+        self.assertIn(self.pages.slug("الريموت: الأعراض والحلول", "art1"), self.html)   # article listed
+
+    @unittest.skipUnless(__import__("shutil").which("node"), "node not installed")
+    def test_mangled_links_redirect_to_their_page(self):
+        import subprocess
+        import urllib.parse
+        art = "/a/" + self.pages.slug("الريموت: الأعراض والحلول", "art1") + "/"
+        doc = "/d/" + self.pages.slug("قطع الغيار", "DOCID999") + "/"
+        cases = {
+            "/a/\u200f" + art[3:]: art,                          # hidden direction mark
+            art.replace("الريموت", "الريموتة"): art,              # a changed letter
+            "/a/art1": art,                                       # the ID alone
+            "/d/قطع-غيار-DOCID999/": doc,
+            "/t/فتحه-السقف-0123456789ab/": "/#topic=0123456789ab",
+            art: None,                                            # really missing: no loop
+            "/somewhere/else": None,
+        }
+        script = self.pages.NOT_FOUND_JS + "var A = %s, D = %s, C = %s;\n" % (
+            json.dumps({"art1": art.strip("/")}), json.dumps({"DOCID999": doc.strip("/")}),
+            json.dumps([urllib.parse.quote(k) for k in cases]))
+        script += "console.log(JSON.stringify(C.map(function (c) { return mazdaTarget(c, A, D); })));"
+        out = json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True,
+                                        check=True).stdout)
+        got = [None if r is None else urllib.parse.unquote(r) for r in out]
+        self.assertEqual(got, list(cases.values()))
+
+
 class Render(unittest.TestCase):
     def test_compact_drops_derivable_fields(self):
         data = {"topics": [{"name": "بواجي", "norm": "بواجي", "snorm": "x" * 400,

@@ -103,6 +103,58 @@ def facet_tags(f):
     return '<ul class="tags">' + "".join(f"<li>{html.escape(str(b))}</li>" for b in bits) + "</ul>"
 
 
+# Sends a mistyped or mangled link to the page it meant. Every page address ends in its
+# ID, and links shared in chat apps often lose that match elsewhere: a hidden direction
+# mark, ة for ه, أ for ا. The ID survives, so the page looks it up and redirects.
+NOT_FOUND_JS = """
+function mazdaTarget(path, A, D) {
+  var p;
+  try { p = decodeURIComponent(path); } catch (e) { p = path; }
+  var asked = p.replace(/\\/+$/, "");
+  p = p.replace(/[\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069\\s]/g, "").replace(/\\/+$/, "");
+  var m = p.match(/^\\/(a|t|d|l)\\/(.+)$/);
+  if (!m) return null;
+  var kind = m[1], rest = m[2], go = null;
+  function find(map) {
+    for (var id in map)
+      if (rest === id || rest.slice(-id.length - 1) === "-" + id) return "/" + map[id] + "/";
+    return null;
+  }
+  if (kind === "a") go = find(A);
+  else if (kind === "d") go = find(D);
+  else if (kind === "t") { var t = rest.slice(-12); if (/^[0-9a-f]{12}$/.test(t)) go = "/#topic=" + t; }
+  else go = "/";
+  if (!go || go.replace(/\\/$/, "") === asked) return null;   // never loop on a page that is really missing
+  return go;
+}
+"""
+
+
+def not_found_page(articles, docs):
+    """404.html: redirect by the ID at the end of the address, else list the articles."""
+    a_map = {a["id"]: "a/" + slug(a["title"], a["id"]) for a in articles}
+    d_map = {d["id"][:8]: "d/" + slug(d["title"], d["id"][:8]) for d in docs}
+    items = "".join(f'<li><a href="/a/{html.escape(slug(a["title"], a["id"]))}/">{html.escape(a["title"])}</a></li>'
+                    for a in articles)
+    script = (NOT_FOUND_JS + "var go = mazdaTarget(location.pathname, "
+              + json.dumps(a_map, ensure_ascii=False) + ", " + json.dumps(d_map, ensure_ascii=False)
+              + ");\nif (go) location.replace(go + location.hash);\n")
+    return f"""<!doctype html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>الصفحة غير موجودة — دليل مازدا</title>
+<script>{script}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap">
+<style>{CSS}</style>
+</head><body><main>
+<div class="crumb"><a href="{SITE}/">دليل مازدا المنظم</a></div>
+<h1>الصفحة غير موجودة</h1>
+<p class="lede">قد يكون الرابط ناقصا أو تغيّر حرف فيه. اختر الشرح الذي تبحث عنه، أو افتح
+<a href="{SITE}/">الدليل</a> وابحث فيه.</p>
+<h2>الشروحات</h2><ul>{items}</ul>
+</main></body></html>"""
+
+
 def load_drafts(folder=PAGES_DIR):
     """{article id: meta} for every article with a solution page; meta["md"] is its file.
 
@@ -234,6 +286,10 @@ def build(data, dist, drafts=None):
                 f'<p class="lede">{len(topics)} موضوع.</p><ul>{links}</ul>')
         write("l/" + slug(letter, "idx"), f'حرف {letter} — فهرس دليل مازدا',
               f'مواضيع دليل صيانة مازدا التي تبدأ بحرف {letter}', body, index=False)
+
+    # ---- not-found page: GitHub Pages serves it for any missing address ---
+    with open(os.path.join(dist, "404.html"), "w", encoding="utf-8") as fh:
+        fh.write(not_found_page(data["articles"], data.get("docs", [])))
 
     # ---- sitemap --------------------------------------------------------
     day = (data.get("built_at") or "")[:10]
