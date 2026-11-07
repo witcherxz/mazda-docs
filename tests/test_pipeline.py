@@ -1,5 +1,5 @@
 """Unit tests for the extraction rules. Run: python3 -m unittest discover -s tests"""
-import os, sys, unittest
+import json, os, sys, unittest
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
@@ -352,7 +352,7 @@ class StaticPages(unittest.TestCase):
         import tempfile
         self.dist = tempfile.mkdtemp()
         import pages
-        self.written, self.listed = pages.build(self.DATA, self.dist)
+        self.written, self.listed = pages.build(self.DATA, self.dist, drafts={})
 
     def read(self, path):
         with open(os.path.join(self.dist, path, "index.html"), encoding="utf-8") as fh:
@@ -360,7 +360,18 @@ class StaticPages(unittest.TestCase):
 
     def test_a_page_exists_for_the_topic_the_article_the_doc_and_the_letter(self):
         self.assertEqual(self.written, 4)
-        self.assertEqual(self.listed, 4)
+        self.assertEqual(self.listed, 1)                  # only the article
+
+    def test_topic_letter_and_doc_pages_are_kept_out_of_search(self):
+        import pages
+        topic = self.read("t/" + pages.slug("فتحة السقف ماتنزل", "abc123"))
+        letter = self.read("l/" + pages.slug("ف", "idx"))
+        doc = self.read("d/" + pages.slug("قطع الغيار", "DOCID999"))
+        article = self.read("a/" + pages.slug("الريموت: الأعراض والحلول", "art1"))
+        self.assertIn('content="noindex,follow"', doc)
+        self.assertIn('content="noindex,follow"', topic)
+        self.assertIn('content="noindex,follow"', letter)
+        self.assertNotIn("noindex", article)
 
     def test_the_topic_page_carries_its_own_title_and_canonical(self):
         import pages
@@ -370,11 +381,86 @@ class StaticPages(unittest.TestCase):
         self.assertIn("https://t.me/x/1", html)          # its sources are in the markup
         self.assertIn("#topic=abc123", html)             # and it links into the app
 
-    def test_the_sitemap_lists_every_page(self):
+    def test_the_sitemap_lists_only_the_pages_meant_to_rank(self):
         with open(os.path.join(self.dist, "sitemap.xml"), encoding="utf-8") as fh:
             xml = fh.read()
-        self.assertEqual(xml.count("<loc>"), 5)          # four pages plus the home page
+        self.assertEqual(xml.count("<loc>"), 2)          # the article and the home page
+        self.assertNotIn("/d/", xml)
+        self.assertNotIn("/t/", xml)
+        self.assertNotIn("/l/", xml)
         self.assertIn("<lastmod>2026-08-24</lastmod>", xml)
+
+
+class SolutionPages(unittest.TestCase):
+    """An article with a drafted page in data/pages/ is published as that page."""
+
+    MD = ("---\ntitle: ريموت مازدا لا يعمل\nsummary: غيّر بطارية الريموت أولا.\n---\n"
+          "إذا كانت السيارة لا تشتغل إلا بتقريب الريموت فغيّر بطاريته.\n\n"
+          "| ما تلاحظه | افحص أولا |\n|---|---|\n| لمبة الريموت لا تضيء | بطارية الريموت |\n\n"
+          "## بطارية الريموت\n\n**كيف تعرفها:** الأبواب لا تفتح من مسافة ([فيديو تغيير البطارية](L1)).\n\n"
+          "**القطع:**\n- بطارية CR2032 بـ6 ريال 9/2024\n"
+          "---\nunclear:\n- لا شيء\nomit: 2\n")
+
+    def setUp(self):
+        import copy
+        import tempfile
+        import pages
+        import solutions
+        self.pages, self.solutions = pages, solutions
+        self.data = copy.deepcopy(StaticPages.DATA)
+        self.article = self.data["articles"][0]
+        self.article["blocks"] = [{"runs": [{"t": "حل مؤقت "}, {"t": "فيديو", "u": "https://youtu.be/now"}]}]
+        self.folder = tempfile.mkdtemp()
+        with open(os.path.join(self.folder, "art1.md"), "w", encoding="utf-8") as fh:
+            fh.write(self.MD)
+        meta = {"art1": {"source_hash": self.hash(), "drafted": "2026-11-07", "names": {},
+                         "links": [{"t": "فيديو", "u": "https://youtu.be/then"},
+                                   {"t": "2", "u": "https://youtu.be/offtopic"}]}}
+        with open(os.path.join(self.folder, "meta.json"), "w", encoding="utf-8") as fh:
+            json.dump(meta, fh, ensure_ascii=False)
+        self.dist = tempfile.mkdtemp()
+
+    def hash(self):
+        return self.solutions.input_hash(self.solutions.article_text(self.article)[0])
+
+    def build(self):
+        self.pages.build(self.data, self.dist, drafts=self.pages.load_drafts(self.folder))
+        path = "a/" + self.pages.slug(self.article["title"], "art1")
+        with open(os.path.join(self.dist, path, "index.html"), encoding="utf-8") as fh:
+            return fh.read()
+
+    def test_the_article_page_is_the_drafted_page(self):
+        html = self.build()
+        self.assertIn("<title>ريموت مازدا لا يعمل</title>", html)
+        self.assertIn("الجواب المختصر", html)
+        self.assertIn('rel="canonical"', html)
+        self.assertNotIn("noindex", html)
+        self.assertNotIn("مسودة", html)                   # no draft banner or reviewer panel
+        self.assertNotIn("للمراجع فقط", html)
+
+    def test_links_are_the_ones_the_page_was_drafted_with(self):
+        html = self.build()
+        self.assertIn("https://youtu.be/then", html)
+        self.assertNotIn("https://youtu.be/now", html)
+        self.assertNotIn("https://youtu.be/offtopic", html)  # listed under omit
+
+    def test_the_sitemap_dates_the_page_by_its_draft(self):
+        self.build()
+        with open(os.path.join(self.dist, "sitemap.xml"), encoding="utf-8") as fh:
+            xml = fh.read()
+        self.assertIn("<lastmod>2026-11-07</lastmod>", xml)
+
+    def test_an_edited_article_is_reported_but_keeps_its_page(self):
+        self.assertEqual(self.pages.stale_drafts(self.data["articles"], self.pages.load_drafts(self.folder)), [])
+        self.article["blocks"][0]["runs"][0]["t"] = "نص جديد "
+        self.assertEqual(self.pages.stale_drafts(self.data["articles"], self.pages.load_drafts(self.folder)),
+                         ["art1"])
+        self.assertIn("الجواب المختصر", self.build())
+
+    def test_the_parts_list_is_folded_and_the_price_marked(self):
+        html = self.build()
+        self.assertIn('<details class="parts">', html)
+        self.assertIn('<span class="price">6 ريال</span>', html)
 
 
 class Render(unittest.TestCase):

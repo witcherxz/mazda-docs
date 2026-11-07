@@ -10,9 +10,10 @@ import json
 import os
 import re
 
-from common import norm_ar
+from common import ROOT, norm_ar
 
 SITE = "https://mazda-community.org"
+PAGES_DIR = os.path.join(ROOT, "data", "pages")   # solution pages written from the articles
 KIND_AR = {"telegram": "تيليقرام", "youtube": "يوتيوب", "google-doc": "مستند",
            "web": "موقع", "nhtsa": "استدعاءات", "archive": "أرشيف",
            "shortlink": "رابط مختصر", "image": "صورة", "maps": "خريطة",
@@ -56,11 +57,12 @@ def slug(name, ident):
     return f"{s[:60]}-{ident}" if s else ident
 
 
-def page(title, description, body, path, extra_head=""):
+def page(title, description, body, path, extra_head="", index=True):
     url = f"{SITE}/{path}"
+    robots = "" if index else '<meta name="robots" content="noindex,follow">\n'
     return f"""<!doctype html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title>
+{robots}<title>{html.escape(title)}</title>
 <meta name="description" content="{html.escape(description[:300])}">
 <link rel="canonical" href="{url}">
 <meta property="og:type" content="article"><meta property="og:locale" content="ar_SA">
@@ -101,20 +103,53 @@ def facet_tags(f):
     return '<ul class="tags">' + "".join(f"<li>{html.escape(str(b))}</li>" for b in bits) + "</ul>"
 
 
-def build(data, dist):
+def load_drafts(folder=PAGES_DIR):
+    """{article id: meta} for every article with a solution page; meta["md"] is its file.
+
+    meta.json keeps each page's links as they were when it was drafted, because the
+    page cites them by position (L1, L2...) and the article's links shift as it is edited.
+    """
+    try:
+        with open(os.path.join(folder, "meta.json"), encoding="utf-8") as fh:
+            meta = json.load(fh)
+    except OSError:
+        return {}
+    out = {}
+    for aid, m in meta.items():
+        md = os.path.join(folder, aid + ".md")
+        if os.path.exists(md):
+            out[aid] = dict(m, md=md)
+    return out
+
+
+def stale_drafts(articles, drafts):
+    """Articles edited since their page was drafted. The page still shows; redraft it."""
+    import solutions
+    return sorted(a["id"] for a in articles if a["id"] in drafts
+                  and solutions.input_hash(solutions.article_text(a)[0])
+                  != drafts[a["id"]].get("source_hash"))
+
+
+def build(data, dist, drafts=None):
     """Write a page per topic, article, document and letter, plus the sitemap."""
     source_doc = data["source"]
     urls, written = [], 0
+    drafts = load_drafts() if drafts is None else drafts
 
-    def write(path, title, description, body, extra_head=""):
+    def emit(path, markup, index=True, lastmod=None):
+        # index=False: the page stays reachable for links people already have, but
+        # search engines are told to skip it and the sitemap leaves it out
         nonlocal written
         full = os.path.join(dist, path, "index.html")
         os.makedirs(os.path.dirname(full), exist_ok=True)
-        markup = page(title, description, body, path + "/", extra_head).replace(
-            "{SOURCE}", html.escape(source_doc))
         open(full, "w", encoding="utf-8").write(markup)
-        urls.append(f"{SITE}/{path}/")
+        if index:
+            urls.append((f"{SITE}/{path}/", lastmod))
         written += 1
+
+    def write(path, title, description, body, extra_head="", index=True):
+        emit(path, page(title, description, body, path + "/", extra_head, index).replace(
+            "{SOURCE}", html.escape(source_doc)), index)
 
     hub = [t for t in data["topics"] if t.get("doc") == "hub"]
     by_letter = {}
@@ -122,6 +157,8 @@ def build(data, dist):
         by_letter.setdefault(t.get("letter") or "#", []).append(t)
 
     # ---- one page per hub topic ----------------------------------------
+    # A topic page is only a list of links, not an article, so it is kept out of
+    # search results; the article pages are the ones meant to rank.
     for t in hub:
         path = "t/" + slug(t["name"], t["id"])
         t["_path"] = path
@@ -144,10 +181,24 @@ def build(data, dist):
               "headline": t["name"], "inLanguage": "ar",
               "isPartOf": {"@type": "WebSite", "name": "دليل مازدا المنظم", "url": SITE + "/"}}
         head = f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>'
-        write(t["_path"], f'{t["name"]} — دليل مازدا', desc, body, head)
+        write(t["_path"], f'{t["name"]} — دليل مازدا', desc, body, head, index=False)
 
     # ---- one page per article ------------------------------------------
+    # An article with a solution page gets that page; the rest keep the plain text.
+    arts = {a["id"]: a for a in data["articles"]}
+    stale = stale_drafts(data["articles"], drafts)
+    if stale:
+        print(f"→ pages {len(stale)} solution pages drafted from an older article: {', '.join(stale)}")
     for a in data["articles"]:
+        path = "a/" + slug(a["title"], a["id"])
+        d = drafts.get(a["id"])
+        if d:
+            import page_render
+            markup = page_render.render(d["md"], a["id"], d["links"], arts, review=False,
+                                        names=d.get("names", {}), url=f"{SITE}/{path}/",
+                                        modified=d.get("drafted"))[0]
+            emit(path, markup, lastmod=d.get("drafted"))
+            continue
         blocks = []
         for b in a["blocks"][:60]:
             text = html.escape(b.get("t") or " ".join(r["t"] for r in b.get("runs", [])))
@@ -157,10 +208,11 @@ def build(data, dist):
                 f'<h1>{html.escape(a["title"])}</h1>'
                 f'<a class="open" href="{SITE}/#tab=arts&art={a["id"]}">افتح في الدليل التفاعلي ←</a>'
                 + "".join(blocks))
-        write("a/" + slug(a["title"], a["id"]), f'{a["title"]} — دليل مازدا',
-              (a.get("norm") or a["title"])[:280], body)
+        write(path, f'{a["title"]} — دليل مازدا', (a.get("norm") or a["title"])[:280], body)
 
     # ---- one page per satellite document --------------------------------
+    # These show only a title and counts, not the document's text, so they are kept
+    # out of search until they carry real content.
     for doc in data.get("docs", []):
         secs = "".join(f'<li>{html.escape(s["title"])}</li>' for s in doc.get("sections", [])[:40])
         body = (f'<div class="crumb"><a href="{SITE}/">دليل مازدا المنظم</a> ← مستند</div>'
@@ -168,12 +220,12 @@ def build(data, dist):
                 f'<p class="lede">{doc["topics"]} موضوع · {doc["links"]} رابط</p>'
                 f'<a class="open" href="{SITE}/#tab=topics&doc={doc["id"]}">'
                 f'مواضيع هذا المستند في الدليل ←</a>'
-                f'<h2>أقسامه</h2><ul>{secs}</ul>'
-                f'<p><a href="{html.escape(doc["url"])}" rel="noopener">فتح المستند في قوقل ←</a></p>')
+                + (f'<h2>أقسامه</h2><ul>{secs}</ul>' if secs else "")   # most docs have none
+                + f'<p><a href="{html.escape(doc["url"])}" rel="noopener">فتح المستند في قوقل ←</a></p>')
         write("d/" + slug(doc["title"], doc["id"][:8]), f'{doc["title"]} — دليل مازدا',
-              f'{doc["title"]}: {doc["topics"]} موضوع من مستندات مجتمع مازدا', body)
+              f'{doc["title"]}: {doc["topics"]} موضوع من مستندات مجتمع مازدا', body, index=False)
 
-    # ---- a page per index letter, so crawlers can walk the whole index ---
+    # ---- a page per index letter: a list of topic pages, so also not indexed ---
     for letter, topics in by_letter.items():
         links = "".join(f'<li><a href="{SITE}/{t["_path"]}/">{html.escape(t["name"])}</a>'
                         f'<span class="kind">{t["n"]} مصدر</span></li>' for t in topics)
@@ -181,14 +233,14 @@ def build(data, dist):
                 f'<h1>مواضيع حرف {html.escape(letter)}</h1>'
                 f'<p class="lede">{len(topics)} موضوع.</p><ul>{links}</ul>')
         write("l/" + slug(letter, "idx"), f'حرف {letter} — فهرس دليل مازدا',
-              f'مواضيع دليل صيانة مازدا التي تبدأ بحرف {letter}', body)
+              f'مواضيع دليل صيانة مازدا التي تبدأ بحرف {letter}', body, index=False)
 
     # ---- sitemap --------------------------------------------------------
     day = (data.get("built_at") or "")[:10]
     entries = [f"  <url><loc>{SITE}/</loc><changefreq>daily</changefreq>"
                f"<priority>1.0</priority></url>"]
-    entries += [f"  <url><loc>{u}</loc><lastmod>{day}</lastmod>"
-                f"<changefreq>weekly</changefreq></url>" for u in urls]
+    entries += [f"  <url><loc>{u}</loc><lastmod>{lastmod or day}</lastmod>"
+                f"<changefreq>weekly</changefreq></url>" for u, lastmod in urls]
     open(os.path.join(dist, "sitemap.xml"), "w", encoding="utf-8").write(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

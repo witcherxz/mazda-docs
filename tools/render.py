@@ -95,14 +95,11 @@ def build(data, out=SITE, template=TEMPLATE, dist=DIST, deploy=True):
     print(f"→ pages {written} static pages, {listed} URLs in the sitemap")
 
     # the app renders through JavaScript, so give crawlers real links to follow
-    letters = sorted({t.get("letter") for t in data["topics"]
-                      if t.get("doc") == "hub" and t.get("letter")})
+    # point crawlers at the pages meant to rank: the articles
     crawl = (
-        '<nav id="crawl" dir="rtl"><h2>تصفّح الفهرس</h2><div class="row">'
-        + "".join(f'<a href="{SITE_URL}l/{pages.slug(l, "idx")}/">{l}</a>' for l in letters)
-        + '</div><h2>المستندات</h2><div class="row">'
-        + "".join(f'<a href="{SITE_URL}d/{pages.slug(d["title"], d["id"][:8])}/">'
-                  f'{d["title"]}</a>' for d in data.get("docs", [])[:24])
+        '<nav id="crawl" dir="rtl"><h2>الشروحات</h2><div class="row">'
+        + "".join(f'<a href="{SITE_URL}a/{pages.slug(a["title"], a["id"])}/">{a["title"]}</a>'
+                  for a in data.get("articles", []))
         + '</div></nav>'
         '<style>#crawl{max-width:1180px;margin:0 auto;padding:22px 20px 40px;'
         'font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;color:#848D98}'
