@@ -225,6 +225,16 @@ def mark(s):
 class Ctx:
     def __init__(self, links, arts):
         self.links, self.arts, self.cited = links, arts, set()
+        self.heads = []          # (id, heading) of every section, filled in by render()
+
+    def cell(self, text, first):
+        """A table cell; a first-column cell that names a section links to it."""
+        if first and not LINK.search(text):
+            t = toks(text)
+            for hid, h in self.heads:
+                if t and t == toks(h):
+                    return f'<a href="#{hid}">{self.inline(text)}</a>'
+        return self.inline(text)
 
     def inline(self, s):
         out, pos = [], 0
@@ -287,6 +297,8 @@ FACETS = [("sym", ("تعرف", "العلامات", "علامات", "الأعرا
 
 
 def facet_kind(label):
+    if label.strip(" :") in ("غيّر", "غير", "تغيير", "يتغير"):  # a schedule step's change list
+        return "fix"
     for k, words in FACETS:
         if any(w in label for w in words):
             return k
@@ -316,7 +328,9 @@ def group_facets(bl):
                 note, body = rest, []
             body.append(bl[i]); i += 1
         texts = [t for k, v in body for t in (v if k == "ul" else [v])]
-        is_parts = label.startswith("القطع") or partsy(texts)
+        # a labelled step (how to tell, the fix, what to change) stays open even when it
+        # names part numbers; only part lists themselves are folded
+        is_parts = label.startswith("القطع") or (not facet_kind(label) and partsy(texts))
         out.append(("parts" if is_parts else "facet", label, note, body))
     # merge consecutive parts facets into one folded group
     merged = []
@@ -352,7 +366,7 @@ def render_body(body, cx):
             head = v[0]
             th = "".join(f"<th>{cx.inline(c)}</th>" for c in head)
             rows = "".join("<tr>" + "".join(f'<td data-l="{H.escape(head[j] if j < len(head) else "")}">'
-                                            f"{cx.inline(c)}</td>" for j, c in enumerate(r)) + "</tr>"
+                                            f"{cx.cell(c, j == 0)}</td>" for j, c in enumerate(r)) + "</tr>"
                            for r in v[1:])
             out.append(f'<div class="tw"><table class="stack"><thead><tr>{th}</tr></thead><tbody>{rows}</tbody></table></div>')
         else:
@@ -483,6 +497,7 @@ def render(md_path, aid, links, arts, review=True, open_parts=False, names=None,
         else:
             cur["intro"].append(b)
 
+    cx.heads = heads
     # intro: answer paragraphs, then the first table as quick diagnosis, then the rest
     ti = next((i for i, b in enumerate(intro) if b[0] == "table"), None)
     answer = intro[:ti] if ti is not None else intro[:2]
